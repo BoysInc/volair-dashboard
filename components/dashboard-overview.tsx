@@ -1,10 +1,23 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plane,
   Calendar,
@@ -17,8 +30,13 @@ import {
   Eye,
   Edit,
   MoreHorizontal,
-} from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Mock data based on the database schema
 const mockStats = {
@@ -28,7 +46,7 @@ const mockStats = {
   totalBookings: 156,
   fleetUtilization: 78,
   avgRating: 4.8,
-}
+};
 
 const mockAircraft = [
   {
@@ -61,7 +79,7 @@ const mockAircraft = [
     wifi_available: true,
     image_url: "/placeholder.svg?height=200&width=300",
   },
-]
+];
 
 const mockFlights = [
   {
@@ -86,7 +104,7 @@ const mockFlights = [
     price_usd: 12000,
     bookings: 8,
   },
-]
+];
 
 const mockBookings = [
   {
@@ -109,9 +127,12 @@ const mockBookings = [
     status: 2, // Pending
     booking_date: "2024-06-26",
   },
-]
+];
 
-function getStatusBadge(status: number, type: "aircraft" | "flight" | "booking") {
+function getStatusBadge(
+  status: number,
+  type: "aircraft" | "flight" | "booking"
+) {
   const statusMap = {
     aircraft: {
       1: { label: "Active", variant: "default" as const },
@@ -129,10 +150,11 @@ function getStatusBadge(status: number, type: "aircraft" | "flight" | "booking")
       2: { label: "Pending", variant: "secondary" as const },
       3: { label: "Cancelled", variant: "destructive" as const },
     },
-  }
+  };
 
-  const statusInfo = statusMap[type][status as keyof (typeof statusMap)[typeof type]]
-  return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+  const statusInfo =
+    statusMap[type][status as keyof (typeof statusMap)[typeof type]];
+  return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
 }
 
 export function DashboardOverview() {
@@ -142,31 +164,43 @@ export function DashboardOverview() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Aircraft</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Aircraft
+            </CardTitle>
             <Plane className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{mockStats.totalAircraft}</div>
-            <p className="text-xs text-muted-foreground">{mockStats.fleetUtilization}% utilization rate</p>
+            <p className="text-xs text-muted-foreground">
+              {mockStats.fleetUtilization}% utilization rate
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Flights</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Flights
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{mockStats.activeFlights}</div>
-            <p className="text-xs text-muted-foreground">Today's scheduled flights</p>
+            <p className="text-xs text-muted-foreground">
+              Today's scheduled flights
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Monthly Revenue
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{mockStats.monthlyRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              ₦{mockStats.monthlyRevenue.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">
               <TrendingUp className="inline h-3 w-3" /> +12% from last month
             </p>
@@ -174,12 +208,16 @@ export function DashboardOverview() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Bookings
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{mockStats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground">Avg rating: {mockStats.avgRating}/5.0</p>
+            <p className="text-xs text-muted-foreground">
+              Avg rating: {mockStats.avgRating}/5.0
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -196,7 +234,9 @@ export function DashboardOverview() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium">Aircraft Fleet</h3>
-              <p className="text-sm text-muted-foreground">Manage your aircraft inventory and specifications</p>
+              <p className="text-sm text-muted-foreground">
+                Manage your aircraft inventory and specifications
+              </p>
             </div>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -209,7 +249,9 @@ export function DashboardOverview() {
               <Card key={aircraft.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{aircraft.model_name}</CardTitle>
+                    <CardTitle className="text-base">
+                      {aircraft.model_name}
+                    </CardTitle>
                     {getStatusBadge(aircraft.status, "aircraft")}
                   </div>
                   <CardDescription>{aircraft.manufacturer}</CardDescription>
@@ -222,8 +264,12 @@ export function DashboardOverview() {
                   />
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Registration:</span>
-                      <span className="font-medium">{aircraft.registration_number}</span>
+                      <span className="text-muted-foreground">
+                        Registration:
+                      </span>
+                      <span className="font-medium">
+                        {aircraft.registration_number}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Capacity:</span>
@@ -231,15 +277,27 @@ export function DashboardOverview() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">WiFi:</span>
-                      <span>{aircraft.wifi_available ? "Available" : "Not Available"}</span>
+                      <span>
+                        {aircraft.wifi_available
+                          ? "Available"
+                          : "Not Available"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                    >
                       <Eye className="mr-2 h-3 w-3" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                    >
                       <Edit className="mr-2 h-3 w-3" />
                       Edit
                     </Button>
@@ -254,7 +312,9 @@ export function DashboardOverview() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium">Flight Schedule</h3>
-              <p className="text-sm text-muted-foreground">Manage your flight schedules and routes</p>
+              <p className="text-sm text-muted-foreground">
+                Manage your flight schedules and routes
+              </p>
             </div>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -279,7 +339,9 @@ export function DashboardOverview() {
               <TableBody>
                 {mockFlights.map((flight) => (
                   <TableRow key={flight.id}>
-                    <TableCell className="font-medium">{flight.aircraft}</TableCell>
+                    <TableCell className="font-medium">
+                      {flight.aircraft}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-3 w-3" />
@@ -289,21 +351,29 @@ export function DashboardOverview() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Clock className="h-3 w-3" />
-                        {new Date(flight.departure_time).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(flight.departure_time).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {new Date(flight.arrival_time).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {new Date(flight.arrival_time).toLocaleTimeString(
+                        "en-US",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )}
                     </TableCell>
                     <TableCell>${flight.price_usd.toLocaleString()}</TableCell>
                     <TableCell>{flight.bookings} passengers</TableCell>
-                    <TableCell>{getStatusBadge(flight.status, "flight")}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(flight.status, "flight")}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -328,7 +398,9 @@ export function DashboardOverview() {
         <TabsContent value="bookings" className="space-y-4">
           <div>
             <h3 className="text-lg font-medium">Recent Bookings</h3>
-            <p className="text-sm text-muted-foreground">View and manage customer bookings for your flights</p>
+            <p className="text-sm text-muted-foreground">
+              View and manage customer bookings for your flights
+            </p>
           </div>
 
           <Card>
@@ -348,13 +420,21 @@ export function DashboardOverview() {
               <TableBody>
                 {mockBookings.map((booking) => (
                   <TableRow key={booking.id}>
-                    <TableCell className="font-medium">{booking.customer}</TableCell>
+                    <TableCell className="font-medium">
+                      {booking.customer}
+                    </TableCell>
                     <TableCell>{booking.flight}</TableCell>
                     <TableCell>{booking.aircraft}</TableCell>
                     <TableCell>{booking.passenger_count}</TableCell>
-                    <TableCell>₦{booking.total_price.toLocaleString()}</TableCell>
-                    <TableCell>{new Date(booking.booking_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{getStatusBadge(booking.status, "booking")}</TableCell>
+                    <TableCell>
+                      ₦{booking.total_price.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(booking.booking_date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(booking.status, "booking")}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -377,5 +457,5 @@ export function DashboardOverview() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
