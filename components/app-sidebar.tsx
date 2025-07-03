@@ -1,5 +1,14 @@
-"use client"
-import { Plane, Calendar, BookOpen, BarChart3, Settings, User, MapPin, CreditCard } from "lucide-react"
+"use client";
+import {
+  Plane,
+  Calendar,
+  BookOpen,
+  BarChart3,
+  Settings,
+  User,
+  MapPin,
+  CreditCard,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -12,9 +21,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Menu items for the operator dashboard
 const items = [
@@ -53,11 +68,11 @@ const items = [
     url: "#settings",
     icon: Settings,
   },
-]
+];
 
 export function AppSidebar() {
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="floating">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -104,12 +119,19 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Operator" />
+                    <AvatarImage
+                      src="/placeholder.svg?height=32&width=32"
+                      alt="Operator"
+                    />
                     <AvatarFallback className="rounded-lg">OP</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Lagos Jets Ltd</span>
-                    <span className="truncate text-xs">operator@lagosjets.com</span>
+                    <span className="truncate font-semibold">
+                      Lagos Jets Ltd
+                    </span>
+                    <span className="truncate text-xs">
+                      operator@lagosjets.com
+                    </span>
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -134,5 +156,5 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

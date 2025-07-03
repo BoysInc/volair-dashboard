@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { DashboardOverview } from "@/components/dashboard-overview"
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { DashboardOverview } from "@/components/dashboard-overview";
 
 export default function Page() {
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider
+      defaultOpen={true}
+      className="flex justify-center items-center w-full"
+    >
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Operator Dashboard</h1>
-          </div>
+      <SidebarInset className="relative">
+        <header className="flex h-16 shrink-0 items-center gap-2 px-4 z-10 absolute top-0 right-0">
+          <SidebarTrigger className="" />
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-1 flex-col gap-4 p-4 mt-16 w-9/12 mx-auto">
           <DashboardOverview />
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }
