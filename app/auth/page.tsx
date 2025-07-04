@@ -37,15 +37,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <AuthForm
-          mode={mode}
-          onToggleMode={handleToggleMode}
-          onSubmit={handleSubmit}
-          onGoogleSignIn={handleGoogleSignIn}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md">
+          <AuthForm
+            mode={mode}
+            onToggleMode={handleToggleMode}
+            onSubmit={handleSubmit}
+            onGoogleSignIn={handleGoogleSignIn}
+          />
+        </div>
       </div>
-    </div>
   );
 }
