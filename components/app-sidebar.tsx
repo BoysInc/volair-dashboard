@@ -35,44 +35,44 @@ import {
 const items = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "/",
     icon: BarChart3,
   },
   {
     title: "Aircraft Fleet",
-    url: "#aircraft",
+    url: "/aircraft",
     icon: Plane,
   },
   {
     title: "Flight Schedule",
-    url: "#flights",
+    url: "/flights",
     icon: Calendar,
   },
   {
     title: "Bookings",
-    url: "#bookings",
+    url: "/bookings",
     icon: BookOpen,
   },
   {
     title: "Airports",
-    url: "#airports",
+    url: "#/airports",
     icon: MapPin,
   },
   {
     title: "Revenue",
-    url: "#revenue",
+    url: "#/revenue",
     icon: CreditCard,
   },
   {
     title: "Settings",
-    url: "#settings",
+    url: "#/settings",
     icon: Settings,
   },
 ];
 
 export function AppSidebar() {
   return (
-    <Sidebar variant="floating">
+    <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
