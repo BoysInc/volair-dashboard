@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientProvider from "@/components/provider/ClientProvider";
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.dev",
+  title: "Volair Aviation",
+  description: "Volair Aviation",
+  generator: "Volair Aviation",
 };
 
 export default function RootLayout({
@@ -13,8 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="en">
-        <body>{children}</body>
-      </html>
+    <html lang="en">
+      <body>
+        <ClientProvider>{children}</ClientProvider>
+      </body>
+    </html>
   );
 }

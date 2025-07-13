@@ -30,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
 
 // Menu items for the operator dashboard
 const items = [
@@ -71,6 +72,8 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const { user, signOut } = useAuth();
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -82,7 +85,9 @@ export function AppSidebar() {
                   <Plane className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">JetOps Nigeria</span>
+                  <span className="truncate font-semibold">
+                    Volair Aviation
+                  </span>
                   <span className="truncate text-xs">Operator Portal</span>
                 </div>
               </a>
@@ -127,11 +132,9 @@ export function AppSidebar() {
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      Lagos Jets Ltd
+                      {user?.first_name} {user?.last_name}
                     </span>
-                    <span className="truncate text-xs">
-                      operator@lagosjets.com
-                    </span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -149,7 +152,7 @@ export function AppSidebar() {
                   <Settings />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

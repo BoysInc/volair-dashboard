@@ -1,3 +1,10 @@
+
+export interface Media {
+    id: string;
+    url: string;
+    type: string;
+    order: number;
+}
 export interface Aircraft {
     id: string;
     operator_id: string;
@@ -8,8 +15,8 @@ export interface Aircraft {
     range_km: number;
     speed_kph: number;
     wifi_available: boolean;
-    image_url: string;
     status: AircraftStatus;
+    media: Media[];
 }
 
 export interface AircraftFormData {
@@ -20,7 +27,6 @@ export interface AircraftFormData {
     range_km: number;
     speed_kph: number;
     wifi_available: boolean;
-    image_url: string;
     status: AircraftStatus;
 }
 

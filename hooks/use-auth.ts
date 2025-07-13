@@ -1,0 +1,62 @@
+import { useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store/auth-store';
+import { getMe } from '@/lib/server/auth/me';
+
+export function useAuth(requireAuth: boolean = false) {
+    const user = useAuthStore((state) => state.user);
+    const token = useAuthStore((state) => state.token);
+    const setAuth = useAuthStore((state) => state.setAuth);
+    const logout = useAuthStore((state) => state.logout);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const isLoading = useAuthStore((state) => state.isLoading);
+    const hasHydrated = useAuthStore((state) => state.hasHydrated);
+
+    const router = useRouter();
+
+    const getUser = useCallback(async () => {
+        // Don't check token until the store has been hydrated
+        if (!hasHydrated) {
+            return;
+        }
+
+        if (!token) {
+            logout();
+            router.push('/auth');
+            return;
+        }
+
+        const { data: userData, error: userError } = await getMe(token);
+
+        if (userError !== null) {
+            logout();
+            router.push('/auth');
+            return;
+        }
+
+        if (userData) {
+            setAuth({ user: userData, token: token || "" });
+        }
+    }, [token, logout, router, setAuth, hasHydrated]);
+
+    useEffect(() => {
+        getUser();
+    }, [requireAuth, isLoading, isAuthenticated, router, getUser]);
+
+    const signOut = () => {
+        logout();
+        router.push('/auth');
+    };
+
+    return {
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        signOut,
+    };
+}
+
+export function useRequireAuth() {
+    return useAuth(true);
+} 

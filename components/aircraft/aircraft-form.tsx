@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -137,13 +137,13 @@ export function AircraftForm({
   const getStatusColor = (status: AircraftStatus) => {
     switch (status) {
       case AircraftStatus.AVAILABLE:
-        return "text-green-600";
+        return "text-white";
       case AircraftStatus.IN_FLIGHT:
-        return "text-blue-600";
+        return "text-black";
       case AircraftStatus.MAINTENANCE:
-        return "text-orange-600";
+        return "text-white";
       case AircraftStatus.OUT_OF_SERVICE:
-        return "text-red-600";
+        return "text-black";
       default:
         return "text-gray-600";
     }
@@ -151,7 +151,7 @@ export function AircraftForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      <div className="grid gap-6">
+      <div className="grid gap-6 overflow-y-auto max-h-[80svh] scrollbar-hide">
         {/* Aircraft Identification */}
         <Card>
           <CardHeader>
@@ -226,34 +226,23 @@ export function AircraftForm({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="registration_number">Registration Number</Label>
-              <Input
-                id="registration_number"
-                placeholder="e.g., N123AB"
-                {...register("registration_number")}
-              />
-              {errors.registration_number && (
-                <p className="text-sm text-red-500">
-                  {errors.registration_number.message}
-                </p>
-              )}
-            </div>
+            <CustomInput
+              id="registration_number"
+              label="Registration Number"
+              placeholder="e.g., N123AB"
+              registration={register("registration_number")}
+              error={errors.registration_number?.message}
+              required
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="image_url">Image URL (optional)</Label>
-              <Input
-                id="image_url"
-                type="url"
-                placeholder="https://example.com/aircraft-image.jpg"
-                {...register("image_url")}
-              />
-              {errors.image_url && (
-                <p className="text-sm text-red-500">
-                  {errors.image_url.message}
-                </p>
-              )}
-            </div>
+            <CustomInput
+              id="image_url"
+              label="Image URL (optional)"
+              type="url"
+              placeholder="https://example.com/image.jpg"
+              registration={register("image_url")}
+              error={errors.image_url?.message}
+            />
           </CardContent>
         </Card>
 
@@ -267,55 +256,42 @@ export function AircraftForm({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="seating_capacity">Seating Capacity</Label>
-                <Input
-                  id="seating_capacity"
-                  type="number"
-                  min="1"
-                  max="50"
-                  {...register("seating_capacity", { valueAsNumber: true })}
-                />
-                {errors.seating_capacity && (
-                  <p className="text-sm text-red-500">
-                    {errors.seating_capacity.message}
-                  </p>
-                )}
-              </div>
+              <CustomInput
+                id="seating_capacity"
+                label="Seating Capacity"
+                type="number"
+                min="1"
+                max="50"
+                registration={register("seating_capacity", {
+                  valueAsNumber: true,
+                })}
+                error={errors.seating_capacity?.message}
+                required
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="range_km">Range (km)</Label>
-                <Input
-                  id="range_km"
-                  type="number"
-                  min="100"
-                  max="20000"
-                  step="100"
-                  {...register("range_km", { valueAsNumber: true })}
-                />
-                {errors.range_km && (
-                  <p className="text-sm text-red-500">
-                    {errors.range_km.message}
-                  </p>
-                )}
-              </div>
+              <CustomInput
+                id="range_km"
+                label="Range (km)"
+                type="number"
+                min="100"
+                max="20000"
+                step="100"
+                registration={register("range_km", { valueAsNumber: true })}
+                error={errors.range_km?.message}
+                required
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="speed_kph">Speed (kph)</Label>
-                <Input
-                  id="speed_kph"
-                  type="number"
-                  min="100"
-                  max="1000"
-                  step="10"
-                  {...register("speed_kph", { valueAsNumber: true })}
-                />
-                {errors.speed_kph && (
-                  <p className="text-sm text-red-500">
-                    {errors.speed_kph.message}
-                  </p>
-                )}
-              </div>
+              <CustomInput
+                id="speed_kph"
+                label="Speed (kph)"
+                type="number"
+                min="100"
+                max="1000"
+                step="10"
+                registration={register("speed_kph", { valueAsNumber: true })}
+                error={errors.speed_kph?.message}
+                required
+              />
             </div>
 
             <Separator />

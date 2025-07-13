@@ -11,8 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormInput } from "@/components/ui/form-input";
-import { GoogleSignInButton } from "@/components/ui/google-sign-in-button";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Separator } from "@/components/ui/separator";
 import {
   signInSchema,
@@ -21,26 +20,31 @@ import {
   SignUpFormData,
 } from "@/lib/validations/auth";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import { login, signup } from "@/lib/server/auth/login";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/store/auth-store";
+import { toast } from "sonner";
+import { tryCatch } from "@/lib/utils";
 
 const googleClientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 interface AuthFormProps {
   mode: "signin" | "signup";
   onToggleMode: () => void;
-  onSubmit: (data: SignInFormData | SignUpFormData) => Promise<void>;
   onGoogleSignIn: () => Promise<void>;
 }
 
 export function AuthForm({
   mode,
   onToggleMode,
-  onSubmit,
   onGoogleSignIn,
 }: AuthFormProps) {
-  const [isLoading, setIsLoading] = React.useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
+  const { setAuth, setLoading, isLoading } = useAuthStore();
 
   const isSignUp = mode === "signup";
+
+  const router = useRouter();
 
   const {
     register,
@@ -52,18 +56,62 @@ export function AuthForm({
   });
 
   const handleFormSubmit = async (data: SignUpFormData) => {
-    setIsLoading(true);
-    try {
-      if (isSignUp) {
-        await onSubmit(data);
-      } else {
-        const { email, password } = data;
-        await onSubmit({ email, password });
+    setLoading(true);
+
+    if (isSignUp) {
+      const {
+        data: signupData,
+        error: signupError,
+        validationErrors,
+      } = await signup(data);
+
+      if (signupError) {
+        console.log("Signup error:", signupError);
+        toast.error(signupError);
+
+        // Handle validation errors
+        if (validationErrors) {
+          // You can display field-specific errors here if needed
+          console.log("Validation errors:", validationErrors);
+        }
+
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Auth error:", error);
-    } finally {
-      setIsLoading(false);
+
+      console.log("Signup data:", signupData);
+      toast.success("Account created successfully!");
+      setLoading(false);
+      router.push("/onboarding");
+    } else {
+      const {
+        data: loginData,
+        error: loginError,
+        validationErrors,
+      } = await login(data);
+
+      if (loginError) {
+        console.error("Login error:", loginError);
+        toast.error(loginError);
+
+        // Handle validation errors
+        if (validationErrors) {
+          console.log("Validation errors:", validationErrors);
+        }
+
+        setLoading(false);
+        return;
+      }
+
+      if (loginData) {
+        // Store auth data in Zustand store
+        setAuth(loginData.data);
+        toast.success(loginData.message || "Logged in successfully!");
+        console.log("Login data:", loginData);
+        router.push("/");
+      }
+
+      setLoading(false);
     }
   };
 
@@ -84,24 +132,41 @@ export function AuthForm({
   };
 
   const handleLogin = async (credentialResponse: any) => {
-    try {
-      const res = await fetch("https://nelwhix.online/api/v1/auth/google/login", {
+    const { data: res, error: fetchError } = await tryCatch(
+      fetch("https://nelwhix.online/api/v1/auth/google/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({ credential: credentialResponse.credential }),
-      });
+      })
+    );
 
-      const data = await res.json();
-      console.log(data)
-      return
-      if (data.token) {
-        localStorage.setItem("auth_token", data.token);
-        console.log("User:", data);
-      } else {
-        console.error("Login failed:", data);
-      }
-    } catch (err) {
-      console.error("Error logging in:", err);
+    if (fetchError) {
+      console.error("Google login fetch error:", fetchError);
+      toast.error("Failed to connect to Google authentication");
+      return;
+    }
+
+    const { data: responseData, error: jsonError } = await tryCatch(res.json());
+
+    if (jsonError) {
+      console.error("Error parsing Google login response:", jsonError);
+      toast.error("Invalid response from Google authentication");
+      return;
+    }
+
+    console.log("Google login response:", responseData);
+
+    if (responseData.token) {
+      // TODO: Integrate with Zustand store instead of localStorage
+      localStorage.setItem("auth_token", responseData.token);
+      console.log("Google User:", responseData);
+      toast.success("Successfully logged in with Google!");
+    } else {
+      console.error("Google login failed:", responseData);
+      toast.error("Google login failed");
     }
   };
 
@@ -137,7 +202,7 @@ export function AuthForm({
 
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
             {isSignUp && (
-              <FormInput
+              <CustomInput
                 id="name"
                 label="Full Name"
                 type="text"
@@ -145,10 +210,11 @@ export function AuthForm({
                 registration={register("name")}
                 error={errors.name?.message}
                 disabled={isLoading}
+                required
               />
             )}
 
-            <FormInput
+            <CustomInput
               id="email"
               label="Email"
               type="email"
@@ -156,9 +222,23 @@ export function AuthForm({
               registration={register("email")}
               error={errors.email?.message}
               disabled={isLoading}
+              required
             />
 
-            <FormInput
+            {isSignUp && (
+              <CustomInput
+                id="phone"
+                label="Phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                registration={register("phone")}
+                error={errors.phone?.message}
+                disabled={isLoading}
+                required
+              />
+            )}
+
+            <CustomInput
               id="password"
               label="Password"
               type="password"
@@ -166,10 +246,12 @@ export function AuthForm({
               registration={register("password")}
               error={errors.password?.message}
               disabled={isLoading}
+              showPasswordToggle
+              required
             />
 
             {isSignUp && (
-              <FormInput
+              <CustomInput
                 id="confirmPassword"
                 label="Confirm Password"
                 type="password"
@@ -177,6 +259,8 @@ export function AuthForm({
                 registration={register("confirmPassword")}
                 error={errors.confirmPassword?.message}
                 disabled={isLoading}
+                showPasswordToggle
+                required
               />
             )}
 

@@ -77,13 +77,13 @@ export function AircraftTable({
   const getStatusColor = (status: AircraftStatus) => {
     switch (status) {
       case AircraftStatus.AVAILABLE:
-        return "text-green-600";
+        return "text-white";
       case AircraftStatus.IN_FLIGHT:
-        return "text-blue-600";
+        return "text-black";
       case AircraftStatus.MAINTENANCE:
-        return "text-orange-600";
+        return "text-white";
       case AircraftStatus.OUT_OF_SERVICE:
-        return "text-red-600";
+        return "text-black";
       default:
         return "text-gray-600";
     }

@@ -27,6 +27,10 @@ export const signUpSchema = z.object({
     confirmPassword: z
         .string()
         .min(1, "Please confirm your password"),
+    phone: z
+        .string()
+        .min(1, "Phone is required")
+        .min(10, "Phone must be at least 10 characters"),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],

@@ -2,7 +2,7 @@
 
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/forms/form-field";
+import { CustomInput } from "@/components/ui/custom-input";
 import { AirportSelect } from "@/components/forms/airport-select";
 import { AircraftSelect } from "@/components/forms/aircraft-select";
 import { FlightStatusSelect } from "@/components/forms/flight-status-select";
@@ -15,6 +15,8 @@ import {
   FlightStatus,
 } from "@/lib/types/flight";
 import { format } from "date-fns";
+import { tryCatch } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface FlightFormProps {
   flight?: FlightWithDetails; // For editing existing flight
@@ -59,8 +61,10 @@ export function FlightForm({ flight, onSubmit, onCancel }: FlightFormProps) {
       };
 
       await onSubmit(formattedData);
+      toast.success("Flight saved successfully!");
     } catch (error) {
       console.error("Failed to submit flight:", error);
+      toast.error("Failed to submit flight. Please try again.");
     }
   };
 

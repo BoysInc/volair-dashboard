@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +21,6 @@ import {
   Clock,
   MapPin,
   Plus,
-  Eye,
-  Edit,
   MoreHorizontal,
 } from "lucide-react";
 import {
@@ -37,6 +29,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
+import AircraftTabView from "@/app/(home)/component/AircraftTabView";
 
 // Mock data based on the database schema
 const mockStats = {
@@ -158,6 +152,8 @@ function getStatusBadge(
 }
 
 export function DashboardOverview() {
+  const { token } = useAuth(true);
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -231,81 +227,7 @@ export function DashboardOverview() {
         </TabsList>
 
         <TabsContent value="aircraft" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium">Aircraft Fleet</h3>
-              <p className="text-sm text-muted-foreground">
-                Manage your aircraft inventory and specifications
-              </p>
-            </div>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Aircraft
-            </Button>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {mockAircraft.map((aircraft) => (
-              <Card key={aircraft.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">
-                      {aircraft.model_name}
-                    </CardTitle>
-                    {getStatusBadge(aircraft.status, "aircraft")}
-                  </div>
-                  <CardDescription>{aircraft.manufacturer}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <img
-                    src={aircraft.image_url || "/placeholder.svg"}
-                    alt={aircraft.model_name}
-                    className="w-full h-32 object-cover rounded-md"
-                  />
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Registration:
-                      </span>
-                      <span className="font-medium">
-                        {aircraft.registration_number}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Capacity:</span>
-                      <span>{aircraft.seating_capacity} passengers</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">WiFi:</span>
-                      <span>
-                        {aircraft.wifi_available
-                          ? "Available"
-                          : "Not Available"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 bg-transparent"
-                    >
-                      <Eye className="mr-2 h-3 w-3" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 bg-transparent"
-                    >
-                      <Edit className="mr-2 h-3 w-3" />
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <AircraftTabView token={token || ""} />
         </TabsContent>
 
         <TabsContent value="flights" className="space-y-4">

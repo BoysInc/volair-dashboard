@@ -7,7 +7,6 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { BookingsTable } from "@/components/bookings/bookings-table";
 import { BookingDetailsModal } from "@/components/bookings/booking-details-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {

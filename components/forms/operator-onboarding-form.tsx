@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { OperatorData } from "@/lib/types/operator";
-import { FormField } from "./form-field";
+import { CustomInput } from "@/components/ui/custom-input";
 import { CountrySelect } from "./country-select";
+import { tryCatch } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface OperatorOnboardingFormProps {
   onSubmit?: (data: OperatorData) => Promise<void>;
@@ -30,27 +32,36 @@ export function OperatorOnboardingForm({
   });
 
   const onSubmitForm = async (data: OperatorData) => {
-    try {
-      if (onSubmit) {
-        await onSubmit(data);
+    if (onSubmit) {
+      const { error } = await tryCatch(onSubmit(data));
+      if (error) {
+        console.error("Failed to submit operator data:", error);
+        toast.error("Failed to submit operator data. Please try again.");
       } else {
-        // Default behavior: save to localStorage and redirect
-        localStorage.setItem("operatorData", JSON.stringify(data));
-        router.push("/");
+        toast.success("Operator data submitted successfully!");
       }
-    } catch (error) {
-      console.error("Failed to submit operator data:", error);
+    } else {
+      // Default behavior: save to localStorage and redirect
+      const { error } = await tryCatch(
+        Promise.resolve().then(() => {
+          localStorage.setItem("operatorData", JSON.stringify(data));
+          router.push("/");
+        })
+      );
+      if (error) {
+        console.error("Failed to save operator data:", error);
+      }
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
-      <FormField
+      <CustomInput
         label="Operator Name"
         placeholder="Enter your operator name"
         required
         error={errors.name?.message}
-        {...register("name", {
+        registration={register("name", {
           required: "Operator name is required",
           validate: (value) =>
             value.trim() !== "" || "Operator name cannot be empty",
@@ -72,12 +83,12 @@ export function OperatorOnboardingForm({
         )}
       />
 
-      <FormField
+      <CustomInput
         label="License Number"
         placeholder="Enter your license number"
         required
         error={errors.license_number?.message}
-        {...register("license_number", {
+        registration={register("license_number", {
           required: "License number is required",
           validate: (value) =>
             value.trim() !== "" || "License number cannot be empty",
