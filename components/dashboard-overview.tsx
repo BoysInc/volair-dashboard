@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,17 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Plane,
-  Calendar,
-  DollarSign,
-  Users,
-  TrendingUp,
-  Clock,
-  MapPin,
-  Plus,
-  MoreHorizontal,
-} from "lucide-react";
+import { Clock, MapPin, Plus, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import AircraftTabView from "@/app/(home)/component/AircraftTabView";
+import StatCards from "@/app/(home)/component/StatCards";
 
 // Mock data based on the database schema
 const mockStats = {
@@ -156,67 +147,7 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Aircraft
-            </CardTitle>
-            <Plane className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalAircraft}</div>
-            <p className="text-xs text-muted-foreground">
-              {mockStats.fleetUtilization}% utilization rate
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Flights
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.activeFlights}</div>
-            <p className="text-xs text-muted-foreground">
-              Today's scheduled flights
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Monthly Revenue
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₦{mockStats.monthlyRevenue.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3" /> +12% from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Bookings
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground">
-              Avg rating: {mockStats.avgRating}/5.0
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatCards token={token || ""} />
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="aircraft" className="space-y-4">
