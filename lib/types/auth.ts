@@ -9,16 +9,26 @@ export interface User {
     role: string;
 }
 
+export interface Operator {
+    id: string,
+    name: string,
+    country: string,
+    license_number: string,
+    verified_at: string|null,
+}
+
 export interface LoginResponse {
     message: string;
     data: {
         user: User;
+        operator: Operator | null;
         token: string;
     };
 }
 
 export interface AuthState {
     user: User | null;
+    operator: Operator | null;
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;

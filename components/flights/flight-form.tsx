@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -8,64 +9,196 @@ import { AircraftSelect } from "@/components/forms/aircraft-select";
 import { FlightStatusSelect } from "@/components/forms/flight-status-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar, Clock, DollarSign, Activity } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, Clock, DollarSign, Activity, Repeat, Timer } from "lucide-react";
 import {
   FlightWithDetails,
   FlightFormData,
   FlightStatus,
 } from "@/lib/types/flight";
-import { format } from "date-fns";
-import { tryCatch } from "@/lib/utils";
+import { formatNumberWithCommas, cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { format, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from "@/hooks/use-auth";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {useAuthStore} from "@/lib/store/auth-store";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 interface FlightFormProps {
   flight?: FlightWithDetails; // For editing existing flight
-  onSubmit: (data: FlightFormData) => void;
   onCancel: () => void;
 }
 
-export function FlightForm({ flight, onSubmit, onCancel }: FlightFormProps) {
+export function FlightForm({ flight, onCancel }: FlightFormProps) {
+  const { token } = useAuth(true);
   const isEditing = !!flight;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formattedPrice, setFormattedPrice] = useState<string>("");
 
   const {
     register,
     handleSubmit,
     control,
     watch,
-    formState: { errors, isSubmitting },
+    setValue,
+    formState: { errors },
   } = useForm<FlightFormData>({
     defaultValues: {
       aircraft_id: flight?.aircraft_id || "",
       departure_airport_id: flight?.departure_airport_id || "",
       arrival_airport_id: flight?.arrival_airport_id || "",
-      departure_time: flight?.departure_time
-        ? format(new Date(flight.departure_time), "yyyy-MM-dd'T'HH:mm")
-        : "",
-      arrival_time: flight?.arrival_time
-        ? format(new Date(flight.arrival_time), "yyyy-MM-dd'T'HH:mm")
-        : "",
+      estimated_duration: flight?.estimated_duration || "",
       price_usd: flight?.price_usd || 0,
-      status: flight?.status ?? FlightStatus.SCHEDULED,
+      status: flight?.status ?? 'Active',
+      is_recurring: false,
+      departure_date: flight?.departure_date || "",
+      departure_time: flight?.departure_date ? format(new Date(flight.departure_date), "HH:mm") : "12:00",
     },
   });
 
   const departureAirportId = watch("departure_airport_id");
+  const selectedAircraftId = watch("aircraft_id");
+  const estimatedDuration = watch("estimated_duration");
+  const price_usd = watch("price_usd");
+  const departure_date = watch("departure_date");
+  const departure_time = watch("departure_time");
 
-  const handleFormSubmit = async (data: FlightFormData) => {
-    try {
-      // Convert datetime-local format to ISO string
-      const formattedData = {
-        ...data,
-        departure_time: new Date(data.departure_time).toISOString(),
-        arrival_time: new Date(data.arrival_time).toISOString(),
+  // Fetch aircraft data
+  const { data: aircraftData } = useQuery({
+    queryKey: ["aircraft"],
+    queryFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/aircraft`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch aircraft");
+      }
+
+      return response.json();
+    },
+    enabled: !!token,
+  });
+
+  // Calculate price based on aircraft price_per_hour_usd and estimated duration
+  useEffect(() => {
+    if (selectedAircraftId && estimatedDuration && aircraftData?.data) {
+      const selectedAircraft = aircraftData.data.find((aircraft: any) => aircraft.id === selectedAircraftId);
+
+      if (selectedAircraft && selectedAircraft.price_per_hour_usd) {
+        const duration = parseFloat(estimatedDuration);
+        if (!isNaN(duration)) {
+          const calculatedPrice = selectedAircraft.price_per_hour_usd * duration;
+          setValue("price_usd", calculatedPrice);
+        }
+      }
+    }
+  }, [selectedAircraftId, estimatedDuration, aircraftData, setValue]);
+
+  // Format price with commas for display
+  useEffect(() => {
+    if (price_usd) {
+      setFormattedPrice(formatNumberWithCommas(price_usd));
+    } else {
+      setFormattedPrice("");
+    }
+  }, [price_usd]);
+
+  const queryClient = useQueryClient();
+  const operator = useAuthStore((state) => state.operator);
+  const mutation = useMutation({
+    mutationFn: async (data: FlightFormData) => {
+      // Remove departure_time from API data since it's now combined with departure_date
+      const { departure_time, ...rest } = data;
+
+      const apiData = {
+        aircraft_id: rest.aircraft_id,
+        departure_airport_id: rest.departure_airport_id,
+        arrival_airport_id: rest.arrival_airport_id,
+        estimated_duration: rest.estimated_duration,
+        status: rest.status,
+        price_usd: Number(rest.price_usd), // Ensure price_usd is a number
+        is_recurring: rest.is_recurring ? "true" : "false",
+        departure_date: rest.departure_date,
       };
 
-      await onSubmit(formattedData);
-      toast.success("Flight saved successfully!");
-    } catch (error) {
+      const url = isEditing 
+        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/${flight?.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights`;
+
+      const method = isEditing ? "PATCH" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        // Parse the error response to get validation errors
+        const errorData = await response.json();
+        if (errorData.errors) {
+          throw { errors: errorData.errors };
+        }
+        throw new Error(response.statusText);
+      }
+
+      return response.json();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({queryKey: ['flights']});
+      await queryClient.invalidateQueries({queryKey: ['flightWidgets']});
+      setIsSubmitting(false);
+      onCancel();
+      toast.success(`Flight ${isEditing ? "updated" : "created"} successfully!`);
+    },
+    onError: (error: any) => {
+      setIsSubmitting(false);
       console.error("Failed to submit flight:", error);
-      toast.error("Failed to submit flight. Please try again.");
+
+      // Handle validation errors
+      if (error.errors) {
+        // Set errors on form fields
+        Object.entries(error.errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages) && messages.length > 0) {
+            // Map API field names to form field names if needed
+            const formField = field as keyof FlightFormData;
+            setValue(formField, watch(formField)); // Ensure the field is touched
+            // @ts-ignore - TypeScript doesn't know about setError
+            control.setError(formField, {
+              type: 'server',
+              message: messages[0] as string
+            });
+          }
+        });
+      } else {
+        toast.error("Failed to submit flight. Please try again.");
+      }
     }
+  });
+
+  const handleFormSubmit = async (data: FlightFormData) => {
+    setIsSubmitting(true);
+
+    // Combine date and time for submission
+    const combinedData = {
+      ...data,
+      departure_date: `${data.departure_date} ${data.departure_time}`,
+      price_usd: Number(data.price_usd) // Ensure price_usd is preserved as a number
+    };
+
+    mutation.mutate(combinedData);
   };
 
   return (
@@ -89,116 +222,200 @@ export function FlightForm({ flight, onSubmit, onCancel }: FlightFormProps) {
           />
         </div>
 
-        {/* Departure Airport */}
-        <Controller
-          name="departure_airport_id"
-          control={control}
-          rules={{ required: "Departure airport is required" }}
-          render={({ field }) => (
-            <AirportSelect
-              label="Departure Airport"
-              value={field.value}
-              onChange={field.onChange}
-              error={errors.departure_airport_id?.message}
-              required
-            />
-          )}
-        />
-
-        {/* Arrival Airport */}
-        <Controller
-          name="arrival_airport_id"
-          control={control}
-          rules={{
-            required: "Arrival airport is required",
-            validate: (value) =>
-              value !== departureAirportId ||
-              "Arrival airport must be different from departure airport",
-          }}
-          render={({ field }) => (
-            <AirportSelect
-              label="Arrival Airport"
-              value={field.value}
-              onChange={field.onChange}
-              error={errors.arrival_airport_id?.message}
-              excludeAirportId={departureAirportId}
-              required
-            />
-          )}
-        />
-
-        {/* Departure Time */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="departure_time"
-            className="text-sm font-medium flex items-center gap-2"
-          >
-            <Calendar className="h-4 w-4" />
-            Departure Time
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="departure_time"
-            type="datetime-local"
-            {...register("departure_time", {
-              required: "Departure time is required",
-            })}
-            className={errors.departure_time ? "border-red-500" : ""}
+        {/* Airports - Departure and Arrival on same row */}
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Departure Airport */}
+          <Controller
+            name="departure_airport_id"
+            control={control}
+            rules={{ required: "Departure airport is required" }}
+            render={({ field }) => (
+              <AirportSelect
+                label="Departure Airport"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.departure_airport_id?.message}
+                required
+              />
+            )}
           />
-          {errors.departure_time && (
-            <p className="text-sm text-red-600">
-              {errors.departure_time.message}
-            </p>
-          )}
+
+          {/* Arrival Airport */}
+          <Controller
+            name="arrival_airport_id"
+            control={control}
+            rules={{
+              required: "Arrival airport is required",
+              validate: (value) =>
+                value !== departureAirportId ||
+                "Arrival airport must be different from departure airport",
+            }}
+            render={({ field }) => (
+              <AirportSelect
+                label="Arrival Airport"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.arrival_airport_id?.message}
+                excludeAirportId={departureAirportId}
+                required
+              />
+            )}
+          />
         </div>
 
-        {/* Arrival Time */}
+        {/* Departure Date and Time */}
         <div className="space-y-2">
           <Label
-            htmlFor="arrival_time"
+            htmlFor="departure_date"
             className="text-sm font-medium flex items-center gap-2"
           >
-            <Clock className="h-4 w-4" />
-            Arrival Time
+            <CalendarIcon className="h-4 w-4" />
+            When is this flight starting?
+            <span className="text-red-500 ml-1">*</span>
+          </Label>
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Date Picker */}
+            <div className="flex-1">
+              <Controller
+                name="departure_date"
+                control={control}
+                rules={{ required: "Departure date is required" }}
+                render={({ field }) => (
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !field.value && "text-muted-foreground",
+                          errors.departure_date && "border-red-500"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value ? (
+                          // Display in a user-friendly format, but store in the required format
+                          format(new Date(field.value), "PPP")
+                        ) : (
+                          <span>Select date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-[100]">
+                      <Calendar
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            // Format date as yyyy-MM-dd (e.g., 2023-12-31)
+                            const formattedDate = format(date, "yyyy-MM-dd");
+                            field.onChange(formattedDate);
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+              {errors.departure_date && (
+                <p className="text-sm text-red-600">
+                  {errors.departure_date.message}
+                </p>
+              )}
+            </div>
+
+            {/* Time Picker */}
+            <div className="md:w-40">
+              <Controller
+                name="departure_time"
+                control={control}
+                rules={{ required: "Departure time is required" }}
+                render={({ field }) => (
+                  <div className="flex items-center">
+                    <CustomInput
+                      type="time"
+                      label=""
+                      placeholder="Select time"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={errors.departure_time?.message}
+                      className="w-full"
+                      prefix={<Clock className="h-4 w-4" />}
+                    />
+                  </div>
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Estimated Duration */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="estimated_duration"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <Timer className="h-4 w-4" />
+            Estimated Duration in Hours
             <span className="text-red-500 ml-1">*</span>
           </Label>
           <Input
-            id="arrival_time"
-            type="datetime-local"
-            {...register("arrival_time", {
-              required: "Arrival time is required",
+            id="estimated_duration"
+            placeholder="e.g. 2"
+            {...register("estimated_duration", {
+              required: "Estimated duration is required",
             })}
-            className={errors.arrival_time ? "border-red-500" : ""}
+            className={cn(
+              "mt-2",
+              errors.estimated_duration ? "border-red-500" : ""
+            )}
           />
-          {errors.arrival_time && (
+          {errors.estimated_duration && (
             <p className="text-sm text-red-600">
-              {errors.arrival_time.message}
+              {errors.estimated_duration.message}
             </p>
           )}
         </div>
 
         {/* Price */}
         <div className="space-y-2">
-          <Label
-            htmlFor="price_usd"
-            className="text-sm font-medium flex items-center gap-2"
-          >
-            <DollarSign className="h-4 w-4" />
-            Price (USD)
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Input
-            id="price_usd"
-            type="number"
-            min="0"
-            step="1"
-            placeholder="Enter price in USD"
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label
+                  htmlFor="price_usd"
+                  className="text-sm font-medium flex items-center gap-2"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  Price (USD)
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Price is automatically calculated based on aircraft price per hour and estimated duration</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {/* Hidden input for the actual numeric value */}
+          <input
+            type="hidden"
             {...register("price_usd", {
               required: "Price is required",
               min: { value: 1, message: "Price must be greater than 0" },
               valueAsNumber: true,
             })}
-            className={errors.price_usd ? "border-red-500" : ""}
+            value={price_usd}
+          />
+          {/* Display input for formatted value */}
+          <Input
+            id="price_usd_display"
+            placeholder="Automatically calculated"
+            value={formattedPrice}
+            className={cn(
+              "mt-2",
+              errors.price_usd ? "border-red-500" : ""
+            )}
+            readOnly
           />
           {errors.price_usd && (
             <p className="text-sm text-red-600">{errors.price_usd.message}</p>
@@ -206,25 +423,72 @@ export function FlightForm({ flight, onSubmit, onCancel }: FlightFormProps) {
         </div>
 
         {/* Flight Status */}
-        <Controller
-          name="status"
-          control={control}
-          rules={{ required: "Flight status is required" }}
-          render={({ field }) => (
-            <FlightStatusSelect
-              label="Flight Status"
-              value={field.value}
-              onChange={field.onChange}
-              error={errors.status?.message}
-              required
-            />
+        <div className="space-y-2">
+          <Label
+            htmlFor="status"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            Flight Status
+            <span className="text-red-500 ml-1">*</span>
+          </Label>
+          <Controller
+              name="status"
+              control={control}
+              rules={{
+                required: "Status is required",
+              }}
+              render={({ field }) => (
+                  <select
+                      id="status"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                  >
+                    <option value={'Active'}>Active</option>
+                    <option value={'Inactive'}>Inactive</option>
+                  </select>
+              )}
+          />
+          {errors.status && (
+            <p className="text-sm text-red-600">{errors.status.message}</p>
           )}
-        />
+        </div>
+
+        {/* Is Recurring */}
+        <div className="space-y-2 md:col-span-2">
+          <Label
+            htmlFor="is_recurring"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <Repeat className="h-4 w-4" />
+            Recurring Flight
+          </Label>
+          <div className="flex items-center space-x-2 mt-2">
+            <Controller
+              name="is_recurring"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  id="is_recurring"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            <Label htmlFor="is_recurring" className="text-sm text-muted-foreground">
+              This flight repeats on a schedule
+            </Label>
+          </div>
+          {errors.is_recurring && (
+            <p className="text-sm text-red-600">{errors.is_recurring.message}</p>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>

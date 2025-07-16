@@ -5,7 +5,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { FlightsTable } from "@/components/flights/flights-table";
-// import { FlightForm } from "@/components/flights/flight-form";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,58 +22,121 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Calendar, Plane } from "lucide-react";
-import { getFlightsWithDetails } from "@/lib/data/mock-flights";
 import {
   FlightWithDetails,
   FlightFormData,
   FlightStatus,
 } from "@/lib/types/flight";
 import { FlightForm } from "@/components/flights/flight-form";
+import { UpdateFlightModal } from "@/components/flights/update-flight-modal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {getOperatorAircrafts} from "@/lib/server/aircraft/aircraft";
+import {useAuth} from "@/hooks/use-auth";
+import {useAuthStore} from "@/lib/store/auth-store";
+import { Skeleton, TableSkeleton } from "@/components/ui/loading-state";
+import { toast } from "sonner";
+
+// Custom StatCardSkeleton component for the stats cards
+function StatCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-[100px]" />
+        <Skeleton className="h-4 w-4 rounded-full" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-8 w-[60px] mb-2" />
+        <Skeleton className="h-3 w-[120px]" />
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function FlightsPage() {
-  const [flights, setFlights] = useState<FlightWithDetails[]>(
-    getFlightsWithDetails()
-  );
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingFlight, setEditingFlight] = useState<FlightWithDetails | null>(
     null
   );
 
-  const handleCreateFlight = (data: FlightFormData) => {
-    // In a real app, this would make an API call
-    console.log("Creating flight:", data);
-    setIsCreateDialogOpen(false);
-    // Refresh flights list
-    setFlights(getFlightsWithDetails());
-  };
+  const { token } = useAuth(true);
+  const operator = useAuthStore((state) => state.operator);
+  const queryClient = useQueryClient();
 
-  const handleEditFlight = (data: FlightFormData) => {
-    // In a real app, this would make an API call
-    console.log("Editing flight:", editingFlight?.id, data);
-    setEditingFlight(null);
-    // Refresh flights list
-    setFlights(getFlightsWithDetails());
-  };
+  // Delete flight mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (flightId: string) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/${flightId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
 
-  const handleDeleteFlight = (flightId: string) => {
-    // In a real app, this would make an API call
-    console.log("Deleting flight:", flightId);
-    setFlights(flights.filter((f) => f.id !== flightId));
-  };
+      if (!response.ok) {
+        throw new Error("Failed to delete flight");
+      }
 
-  const handleStatusUpdate = (flightId: string, newStatus: FlightStatus) => {
-    // In a real app, this would make an API call
-    console.log("Updating flight status:", flightId, newStatus);
-    setFlights((prevFlights) =>
-      prevFlights.map((flight) =>
-        flight.id === flightId ? { ...flight, status: newStatus } : flight
-      )
-    );
-  };
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        return { success: true };
+      }
 
-  const totalFlights = flights.length;
-  const activeFlights = flights.filter((f) => f.status <= 3).length; // Scheduled, Boarding, Departed, In Flight
-  const completedFlights = flights.filter((f) => f.status === 4).length; // Arrived
+      return response.json();
+    },
+    onSuccess: async () => {
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({queryKey: ['flights']});
+      await queryClient.invalidateQueries({queryKey: ['flightWidgets']});
+      toast.success("Flight deleted successfully!");
+    },
+    onError: (error) => {
+      console.error("Error deleting flight:", error);
+      toast.error("Failed to delete flight. Please try again.");
+    },
+  });
+  const { data } = useQuery({
+    queryKey: ["flightWidgets"],
+    queryFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/widgets`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch flight widgets");
+      }
+
+      return response.json()
+    },
+    enabled: !!token,
+  });
+
+  const { data: flights, isLoading} = useQuery({
+    queryKey: ["flights"],
+    queryFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch flights");
+      }
+
+      return response.json()
+    },
+    enabled: !!token,
+  });
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -118,7 +180,6 @@ export default function FlightsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <FlightForm
-                  onSubmit={handleCreateFlight}
                   onCancel={() => setIsCreateDialogOpen(false)}
                 />
               </DialogContent>
@@ -127,46 +188,57 @@ export default function FlightsPage() {
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Flights
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalFlights}</div>
-                <p className="text-xs text-muted-foreground">
-                  Scheduled for today
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Flights
-                </CardTitle>
-                <Plane className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeFlights}</div>
-                <p className="text-xs text-muted-foreground">
-                  Currently active
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{completedFlights}</div>
-                <p className="text-xs text-muted-foreground">
-                  Flights completed
-                </p>
-              </CardContent>
-            </Card>
+            {/* Use the first query's isLoading state to determine whether to show skeletons */}
+            {!data ? (
+              <>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Flights
+                    </CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{data?.today_flights}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Scheduled for today
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Active Flights
+                    </CardTitle>
+                    <Plane className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{data?.active_flights}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Currently active
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{data?.completed_flights}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Flights completed
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           {/* Flights Table */}
@@ -178,36 +250,29 @@ export default function FlightsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <FlightsTable
-                flights={flights}
-                onEdit={setEditingFlight}
-                onDelete={handleDeleteFlight}
-                onStatusUpdate={handleStatusUpdate}
-              />
+              {isLoading ? (
+                <TableSkeleton rows={5} />
+              ) : flights && flights.data ? (
+                <FlightsTable
+                  flights={flights.data}
+                  onEdit={setEditingFlight}
+                  onDelete={(flightId) => deleteMutation.mutate(flightId)}
+                  onStatusUpdate={() => {}}
+                />
+              ) : (
+                <div>No flight data available</div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Edit Flight Dialog */}
-          <Dialog
-            open={!!editingFlight}
-            onOpenChange={(open) => !open && setEditingFlight(null)}
-          >
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Edit Flight</DialogTitle>
-                <DialogDescription>
-                  Update flight details and schedule information.
-                </DialogDescription>
-              </DialogHeader>
-              {editingFlight && (
-                <FlightForm
-                  flight={editingFlight}
-                  onSubmit={handleEditFlight}
-                  onCancel={() => setEditingFlight(null)}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
+          {/* Edit Flight Modal */}
+          {editingFlight && (
+            <UpdateFlightModal
+              flight={editingFlight}
+              open={!!editingFlight}
+              onOpenChange={(open) => !open && setEditingFlight(null)}
+            />
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

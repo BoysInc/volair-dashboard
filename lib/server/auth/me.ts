@@ -1,11 +1,11 @@
 "use server";
 import { tryCatch } from "@/lib/utils";
-import { User } from "@/lib/types/auth";
+import {Operator, User} from "@/lib/types/auth";
 
-export const getMe = async (token: string): Promise<{ data: User | null, error: string | null }> => {
+export const getMe = async (token: string): Promise<{ user: User | null, operator: Operator | null, error: string | null }> => {
 
     if (!token) {
-        return { data: null, error: "No authentication token provided" };
+        return { user: null, operator: null, error: "No authentication token provided" };
     }
 
     const { data, error } = await tryCatch(
@@ -20,15 +20,15 @@ export const getMe = async (token: string): Promise<{ data: User | null, error: 
 
     if (error) {
         console.log("error", error)
-        return { data: null, error: error.message };
+        return { user: null, operator: null, error: error.message };
     }
 
     const { data: userData, error: userError } = await tryCatch(data.json())
 
     if (userError) {
         console.log("userError", userError)
-        return { data: null, error: userError.message };
+        return { user: null, operator: null, error: userError.message };
     }
 
-    return { data: userData.data.user as User, error: null };
+    return { user: userData.data.user as User, operator: userData.data.operator, error: null };
 }

@@ -6,7 +6,7 @@ export interface Airport {
     country: string;
     latitude: number;
     longitude: number;
-    timezone: string;
+    address: string;
 }
 
 export interface Aircraft {
@@ -21,6 +21,7 @@ export interface Aircraft {
     wifi_available: boolean;
     image_url: string;
     status: AircraftStatus;
+    price_per_hour_usd?: number; // Added for price calculation
 }
 
 export interface Flight {
@@ -28,10 +29,10 @@ export interface Flight {
     aircraft_id: string;
     departure_airport_id: string;
     arrival_airport_id: string;
-    departure_time: string; // ISO date string
+    departure_date: string; // ISO date string
     arrival_time: string; // ISO date string
     estimated_duration: string; // Format: "2h 30m"
-    status: FlightStatus;
+    status: string;
     price_usd: number;
 }
 
@@ -45,10 +46,13 @@ export interface FlightFormData {
     aircraft_id: string;
     departure_airport_id: string;
     arrival_airport_id: string;
+    departure_date: string;
     departure_time: string;
     arrival_time: string;
+    estimated_duration: string;
     price_usd: number;
-    status: FlightStatus;
+    status: string;
+    is_recurring: boolean;
 }
 
 export enum FlightStatus {

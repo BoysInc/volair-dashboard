@@ -26,7 +26,7 @@ export function useAuth(requireAuth: boolean = false) {
             return;
         }
 
-        const { data: userData, error: userError } = await getMe(token);
+        const { user: userData, operator, error: userError } = await getMe(token);
 
         if (userError !== null) {
             logout();
@@ -35,7 +35,7 @@ export function useAuth(requireAuth: boolean = false) {
         }
 
         if (userData) {
-            setAuth({ user: userData, token: token || "" });
+            setAuth({ user: userData, token: token || "", operator });
         }
     }, [token, logout, router, setAuth, hasHydrated]);
 
