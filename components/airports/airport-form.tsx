@@ -58,7 +58,8 @@ export function AirportForm({airport, onCancel}: AirportFormProps) {
 
     // Initialize Google Places Autocomplete when the script is loaded
     useEffect(() => {
-        if (scriptLoaded && autocompleteInputRef.current) {
+        // Check if Google Maps is available either through scriptLoaded state or directly in window
+        if ((scriptLoaded || window.google?.maps?.places) && autocompleteInputRef.current) {
             // @ts-ignore
             const options: google.maps.places.AutocompleteOptions = {
                 types: ['airport'],
@@ -69,11 +70,17 @@ export function AirportForm({airport, onCancel}: AirportFormProps) {
                 keyword: 'airport terminal'
             };
 
+            // Clean up any existing autocomplete instance
+            if (autocompleteRef.current) {
+                // @ts-ignore
+                google.maps.event.clearInstanceListeners(autocompleteRef.current);
+                autocompleteRef.current = null;
+            }
+
             autocompleteRef.current = new window.google.maps.places.Autocomplete(
                 autocompleteInputRef.current,
                 options
             );
-
 
             // Add listener for place selection
             autocompleteRef.current.addListener('place_changed', () => {
@@ -107,6 +114,15 @@ export function AirportForm({airport, onCancel}: AirportFormProps) {
                     form.setValue('longitude', lng);
                 }
             });
+
+            // Return cleanup function
+            return () => {
+                if (autocompleteRef.current) {
+                    // @ts-ignore
+                    google.maps.event.clearInstanceListeners(autocompleteRef.current);
+                    autocompleteRef.current = null;
+                }
+            };
         }
     }, [scriptLoaded, form]);
 
