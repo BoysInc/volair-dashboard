@@ -113,30 +113,20 @@ export function FlightStatusSelect({
           <SelectValue placeholder="Select flight status" />
         </SelectTrigger>
         <SelectContent>
-          {operatorEditableStatuses.map((status) => (
-            <SelectItem key={status} value={status.toString()}>
-              <div className="flex items-center gap-2 w-full">
-                <Badge
+          <SelectItem key={status} value={status.toString()}>
+            <div className="flex items-center gap-2 w-full">
+              <Badge
                   variant={getStatusColor(status) as any}
                   className="text-xs flex items-center gap-1"
-                >
-                  {showIcon && getStatusIcon(status)}
-                  {FLIGHT_STATUS_LABELS[status]}
-                </Badge>
-              </div>
-            </SelectItem>
-          ))}
+              >
+                {showIcon && getStatusIcon(status)}
+                {FLIGHT_STATUS_LABELS[status]}
+              </Badge>
+            </div>
+          </SelectItem>
         </SelectContent>
       </Select>
       {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-      {value !== undefined && (
-        <div className="text-xs text-muted-foreground">
-          Current status:{" "}
-          <Badge variant={getStatusColor(value) as any} className="text-xs">
-            {FLIGHT_STATUS_LABELS[value]}
-          </Badge>
-        </div>
-      )}
     </div>
   );
 }

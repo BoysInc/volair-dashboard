@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,14 +87,6 @@ export function FlightsTable({
     }
   };
 
-  const formatTime = (dateString: string) => {
-    return format(new Date(dateString), "HH:mm");
-  };
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM dd, yyyy");
-  };
-
   const getAvailableStatusTransitions = (
     currentStatus: FlightStatus
   ): FlightStatus[] => {
@@ -140,7 +133,6 @@ export function FlightsTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Flight Details</TableHead>
             <TableHead>Route</TableHead>
             <TableHead>Aircraft</TableHead>
             <TableHead>Schedule</TableHead>
@@ -152,19 +144,6 @@ export function FlightsTable({
         <TableBody>
           {flights.map((flight) => (
             <TableRow key={flight.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <Plane className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-semibold">
-                      Flight {flight.id.toUpperCase()}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {flight.estimated_duration}
-                    </div>
-                  </div>
-                </div>
-              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="flex flex-col">
@@ -202,23 +181,17 @@ export function FlightsTable({
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-semibold">
-                      {formatTime(flight.departure_time)} -{" "}
-                      {formatTime(flight.arrival_time)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(flight.departure_time)}
+                      {flight.departure_date}
                     </div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={getStatusColor(flight.status) as any}>
-                  {FLIGHT_STATUS_LABELS[flight.status]}
-                </Badge>
+                {flight.status}
               </TableCell>
               <TableCell>
                 <div className="font-semibold">
-                  ${flight.price_usd.toLocaleString()}
+                  {formatCurrency(flight.price_usd)}
                 </div>
               </TableCell>
               <TableCell>
@@ -235,34 +208,6 @@ export function FlightsTable({
                       <Edit className="mr-2 h-4 w-4" />
                       Edit Flight
                     </DropdownMenuItem>
-
-                    {onStatusUpdate &&
-                      getAvailableStatusTransitions(flight.status).length >
-                        0 && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Update Status</DropdownMenuLabel>
-                          {getAvailableStatusTransitions(flight.status).map(
-                            (status) => (
-                              <DropdownMenuItem
-                                key={status}
-                                onClick={() =>
-                                  handleStatusUpdate(flight.id, status)
-                                }
-                              >
-                                <div className="flex items-center">
-                                  <Badge
-                                    variant={getStatusColor(status) as any}
-                                    className="mr-2 text-xs"
-                                  >
-                                    {FLIGHT_STATUS_LABELS[status]}
-                                  </Badge>
-                                </div>
-                              </DropdownMenuItem>
-                            )
-                          )}
-                        </>
-                      )}
 
                     <DropdownMenuSeparator />
                     <DropdownMenuItem

@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "fetch-docs": "node -e \"const https = require('https'); const fs = require('fs'); const url = 'http://localhost:8000/docs?api-docs.json'; fetch(url).then(res => res.json()).then(data => { fs.writeFileSync('lib/docs.json', JSON.stringify(data, null, 2)); console.log('API docs fetched and saved to lib/docs.json'); }).catch(err => console.error('Error fetching API docs:', err))\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

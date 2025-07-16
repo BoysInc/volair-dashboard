@@ -7,69 +7,6 @@ import {
     AircraftStatus
 } from "@/lib/types/flight";
 
-export const mockAirports: Airport[] = [
-    {
-        id: "apt-1",
-        name: "Murtala Muhammed International Airport",
-        iata_code: "LOS",
-        city: "Lagos",
-        country: "Nigeria",
-        latitude: 6.5774,
-        longitude: 3.3210,
-        timezone: "Africa/Lagos",
-    },
-    {
-        id: "apt-2",
-        name: "Nnamdi Azikiwe International Airport",
-        iata_code: "ABV",
-        city: "Abuja",
-        country: "Nigeria",
-        latitude: 9.0068,
-        longitude: 7.2632,
-        timezone: "Africa/Lagos",
-    },
-    {
-        id: "apt-3",
-        name: "Port Harcourt International Airport",
-        iata_code: "PHC",
-        city: "Port Harcourt",
-        country: "Nigeria",
-        latitude: 5.0155,
-        longitude: 6.9496,
-        timezone: "Africa/Lagos",
-    },
-    {
-        id: "apt-4",
-        name: "Mallam Aminu Kano International Airport",
-        iata_code: "KAN",
-        city: "Kano",
-        country: "Nigeria",
-        latitude: 12.0476,
-        longitude: 8.5246,
-        timezone: "Africa/Lagos",
-    },
-    {
-        id: "apt-5",
-        name: "Akanu Ibiam International Airport",
-        iata_code: "ENU",
-        city: "Enugu",
-        country: "Nigeria",
-        latitude: 6.4742,
-        longitude: 7.5620,
-        timezone: "Africa/Lagos",
-    },
-    {
-        id: "apt-6",
-        name: "Benin Airport",
-        iata_code: "BNI",
-        city: "Benin City",
-        country: "Nigeria",
-        latitude: 6.3169,
-        longitude: 5.5999,
-        timezone: "Africa/Lagos",
-    }
-];
-
 export const mockAircrafts: Aircraft[] = [
     {
         id: "ac-1",
@@ -206,15 +143,6 @@ export const mockFlights: Flight[] = [
         price_usd: 3800,
     }
 ];
-
-export const getFlightsWithDetails = (): FlightWithDetails[] => {
-    return mockFlights.map(flight => ({
-        ...flight,
-        aircraft: mockAircrafts.find(ac => ac.id === flight.aircraft_id)!,
-        departure_airport: mockAirports.find(ap => ap.id === flight.departure_airport_id)!,
-        arrival_airport: mockAirports.find(ap => ap.id === flight.arrival_airport_id)!,
-    }));
-};
 
 export const getAvailableAircraft = (): Aircraft[] => {
     return mockAircrafts.filter(aircraft => aircraft.status === AircraftStatus.AVAILABLE);

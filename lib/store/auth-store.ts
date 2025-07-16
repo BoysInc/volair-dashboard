@@ -7,6 +7,7 @@ export const useAuthStore = create<AuthStore>()(
         (set, get) => ({
             // Initial state
             user: null,
+            operator: null,
             token: null,
             isAuthenticated: false,
             isLoading: false,
@@ -16,6 +17,7 @@ export const useAuthStore = create<AuthStore>()(
             setAuth: (data) => {
                 set({
                     user: data.user,
+                    operator: data.operator,
                     token: data.token,
                     isAuthenticated: true,
                     isLoading: false,

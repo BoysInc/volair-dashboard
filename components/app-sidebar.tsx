@@ -56,7 +56,7 @@ const items = [
   },
   {
     title: "Airports",
-    url: "#/airports",
+    url: "/airports",
     icon: MapPin,
   },
   {
