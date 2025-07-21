@@ -19,7 +19,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useAuth} from "@/hooks/use-auth";
 
 interface AirportFormProps {
-    airport?: Airport;
     onCancel: () => void;
 }
 
@@ -34,7 +33,7 @@ interface AirportFormData {
     longitude: number;
 }
 
-export function AirportForm({airport, onCancel}: AirportFormProps) {
+export function AirportForm({onCancel}: AirportFormProps) {
     const { token } = useAuth(true);
     const [scriptLoaded, setScriptLoaded] = useState(false);
     const autocompleteInputRef = useRef<HTMLInputElement>(null);
@@ -44,14 +43,14 @@ export function AirportForm({airport, onCancel}: AirportFormProps) {
 
     const form = useForm<AirportFormData>({
         defaultValues: {
-            name: airport?.name || "",
-            iata_code: airport?.iata_code || "",
-            city: airport?.city || "",
-            country: airport?.country || "",
-            address: airport?.address || "", // New field from the schema
+            name: "",
+            iata_code: "",
+            city: "",
+            country: "",
+            address: "",
             type: 'Airport',
-            latitude: airport?.latitude || 0,
-            longitude: airport?.longitude || 0,
+            latitude: 0,
+            longitude: 0,
         },
     });
 
@@ -377,7 +376,7 @@ export function AirportForm({airport, onCancel}: AirportFormProps) {
                           Cancel
                       </Button>
                       <Button type="submit" disabled={isSubmitting}>
-                          {isSubmitting ? "Submitting..." : (airport ? "Update Airport" : "Add Airport")}
+                          {isSubmitting ? "Submitting..." : "Add Airport"}
                       </Button>
                   </div>
               </form>
