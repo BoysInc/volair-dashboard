@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -41,89 +40,134 @@ import {
 import {
   Aircraft,
   AircraftStatus,
-  AIRCRAFT_STATUS_LABELS,
+  DeleteAircraftError,
 } from "@/lib/types/aircraft";
+import {
+  getStatusBadgeVariant,
+  getStatusColor,
+  getAvailableStatusTransitions,
+  DeleteAircraftErrorEnum,
+} from "@/lib/utils/aircraft";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  deleteAircraft,
+  getOperatorAircrafts,
+  updateAircraft,
+} from "@/lib/server/aircraft/aircraft";
+import { useAuth } from "@/hooks/use-auth";
+import { ErrorState } from "../ui/error-state";
+import { LoadingState } from "../ui/loading-state";
+import { toast } from "sonner";
+import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
+import { DeleteAircraftConfirmationModal } from "./delete-aircraft-confirmation-modal";
+import { AircraftFlightsConflictModal } from "./aircraft-flights-conflict-modal";
 
 interface AircraftTableProps {
-  aircraft: Aircraft[];
-  onEdit: (aircraft: Aircraft) => void;
-  onDelete: (aircraftId: string) => void;
-  onStatusUpdate: (aircraftId: string, newStatus: AircraftStatus) => void;
+  token: string;
 }
 
-export function AircraftTable({
-  aircraft,
-  onEdit,
-  onDelete,
-  onStatusUpdate,
-}: AircraftTableProps) {
-  const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
+export function AircraftTable({ token }: AircraftTableProps) {
+  const { openEditModal, openViewModal } = useAircraftModalStore();
+  const queryClient = useQueryClient();
 
-  const getStatusBadgeVariant = (status: AircraftStatus) => {
-    switch (status) {
-      case AircraftStatus.AVAILABLE:
-        return "default";
-      case AircraftStatus.IN_FLIGHT:
-        return "secondary";
-      case AircraftStatus.MAINTENANCE:
-        return "destructive";
-      case AircraftStatus.OUT_OF_SERVICE:
-        return "outline";
-      default:
-        return "secondary";
+  // State for flights conflict modal
+  const [showFlightsModal, setShowFlightsModal] = useState(false);
+  const [conflictingFlights, setConflictingFlights] = useState<string[]>([]);
+  const [aircraftToDelete, setAircraftToDelete] = useState<string | null>(null);
+
+  // State for delete confirmation modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const {
+    data: aircraftData,
+    isLoading: isLoadingAircraft,
+    error: aircraftError,
+  } = useQuery({
+    queryKey: ["aircrafts"],
+    queryFn: () => getOperatorAircrafts(token),
+    enabled: !!token,
+  });
+
+  const { data: aircraftDataMemo, error: aircraftErrorMemo } = useMemo(() => {
+    const { data, error } = aircraftData || { data: null, error: null };
+    return {
+      data: data,
+      error: error,
+    };
+  }, [aircraftData, aircraftError]);
+
+  if (isLoadingAircraft) {
+    return <LoadingState />;
+  }
+
+  if (aircraftErrorMemo !== null) {
+    return <ErrorState />;
+  }
+
+  const handleStatusUpdate = async (
+    aircraftId: string,
+    newStatus: AircraftStatus
+  ) => {
+    const { data, error } = await updateAircraft(token, aircraftId, {
+      status: newStatus,
+    });
+    if (error !== null) {
+      console.error("Error updating aircraft status:", error);
+      toast.error("Error updating aircraft status");
+      return;
+    }
+    if (data !== null) {
+      toast.success("Aircraft status updated");
+      return;
     }
   };
 
-  const getStatusColor = (status: AircraftStatus) => {
-    switch (status) {
-      case AircraftStatus.AVAILABLE:
-        return "text-white";
-      case AircraftStatus.IN_FLIGHT:
-        return "text-black";
-      case AircraftStatus.MAINTENANCE:
-        return "text-white";
-      case AircraftStatus.OUT_OF_SERVICE:
-        return "text-black";
-      default:
-        return "text-gray-600";
-    }
+  const handleDeleteClick = (aircraftId: string) => {
+    setAircraftToDelete(aircraftId);
+    setShowDeleteModal(true);
   };
 
-  const getAvailableStatusTransitions = (currentStatus: AircraftStatus) => {
-    switch (currentStatus) {
-      case AircraftStatus.AVAILABLE:
-        return [
-          { status: AircraftStatus.IN_FLIGHT, label: "Mark as In Flight" },
-          { status: AircraftStatus.MAINTENANCE, label: "Send to Maintenance" },
-          {
-            status: AircraftStatus.OUT_OF_SERVICE,
-            label: "Take Out of Service",
-          },
-        ];
-      case AircraftStatus.IN_FLIGHT:
-        return [
-          { status: AircraftStatus.AVAILABLE, label: "Mark as Available" },
-          { status: AircraftStatus.MAINTENANCE, label: "Send to Maintenance" },
-        ];
-      case AircraftStatus.MAINTENANCE:
-        return [
-          { status: AircraftStatus.AVAILABLE, label: "Return to Service" },
-          {
-            status: AircraftStatus.OUT_OF_SERVICE,
-            label: "Take Out of Service",
-          },
-        ];
-      case AircraftStatus.OUT_OF_SERVICE:
-        return [
-          { status: AircraftStatus.AVAILABLE, label: "Return to Service" },
-          { status: AircraftStatus.MAINTENANCE, label: "Send to Maintenance" },
-        ];
-      default:
-        return [];
+  const handleConfirmDelete = async () => {
+    if (!aircraftToDelete) return;
+
+    setIsDeleting(true);
+    const { data, error } = await deleteAircraft(token, aircraftToDelete);
+
+    if (error !== null) {
+      if (
+        typeof error === "object" &&
+        error.message === DeleteAircraftErrorEnum.AIRCRAFT_WITH_FLIGHTS
+      ) {
+        try {
+          const errorData = error as DeleteAircraftError;
+          if (errorData.errors?.flights) {
+            setConflictingFlights(errorData.errors.flights);
+            setShowDeleteModal(false);
+            setShowFlightsModal(true);
+            setIsDeleting(false);
+            return;
+          }
+        } catch {
+          toast.error("Cannot delete aircraft with flights");
+          setIsDeleting(false);
+          return;
+        }
+      }
+      toast.error("Error deleting aircraft: " + error);
+      setIsDeleting(false);
+      return;
     }
+
+    toast.success("Aircraft deleted successfully");
+    queryClient.refetchQueries({ queryKey: ["aircrafts"], exact: true });
+    queryClient.refetchQueries({ queryKey: ["aircraftWidgets"], exact: true });
+    setShowDeleteModal(false);
+    setAircraftToDelete(null);
+    setIsDeleting(false);
+    return;
   };
 
-  if (aircraft.length === 0) {
+  if (aircraftDataMemo === null) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -153,7 +197,7 @@ export function AircraftTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {aircraft.map((ac) => (
+            {aircraftDataMemo.map((ac: Aircraft) => (
               <TableRow key={ac.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -211,7 +255,7 @@ export function AircraftTable({
                     variant={getStatusBadgeVariant(ac.status)}
                     className={getStatusColor(ac.status)}
                   >
-                    {AIRCRAFT_STATUS_LABELS[ac.status]}
+                    {ac.status}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -224,7 +268,7 @@ export function AircraftTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => onEdit(ac)}>
+                      <DropdownMenuItem onClick={() => openEditModal(ac)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Aircraft
                       </DropdownMenuItem>
@@ -235,7 +279,7 @@ export function AircraftTable({
                           <DropdownMenuItem
                             key={transition.status}
                             onClick={() =>
-                              onStatusUpdate(ac.id, transition.status)
+                              handleStatusUpdate(ac.id, transition.status)
                             }
                           >
                             <Settings className="mr-2 h-4 w-4" />
@@ -245,7 +289,7 @@ export function AircraftTable({
                       )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => onDelete(ac.id)}
+                        onClick={() => handleDeleteClick(ac.id)}
                         className="text-red-600"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -259,6 +303,30 @@ export function AircraftTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Modal Components */}
+      <AircraftFlightsConflictModal
+        open={showFlightsModal}
+        onOpenChange={setShowFlightsModal}
+        conflictingFlights={conflictingFlights}
+        onClose={() => {
+          setShowFlightsModal(false);
+          setConflictingFlights([]);
+          setAircraftToDelete(null);
+        }}
+      />
+
+      <DeleteAircraftConfirmationModal
+        open={showDeleteModal}
+        onOpenChange={(open) => {
+          setShowDeleteModal(open);
+          if (!open) {
+            setAircraftToDelete(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

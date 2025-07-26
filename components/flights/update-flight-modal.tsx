@@ -7,21 +7,39 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { AircraftSelect } from "@/components/forms/aircraft-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar as CalendarIcon, Clock, DollarSign, Activity, Repeat, Timer } from "lucide-react";
 import {
-  FlightWithDetails,
+  Loader2,
+  Calendar as CalendarIcon,
+  Clock,
+  DollarSign,
+  Activity,
+  Repeat,
+  Timer,
+} from "lucide-react";
+import {
   FlightFormData,
+  FlightStatus,
+  OperatorFlight,
 } from "@/lib/types/flight";
 import { formatNumberWithCommas, cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuthStore } from "@/lib/store/auth-store";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -32,12 +50,16 @@ import {
 } from "@/components/ui/dialog";
 
 interface UpdateFlightModalProps {
-  flight: FlightWithDetails;
+  flight: OperatorFlight;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightModalProps) {
+export function UpdateFlightModal({
+  flight,
+  open,
+  onOpenChange,
+}: UpdateFlightModalProps) {
   const { token } = useAuth(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formattedPrice, setFormattedPrice] = useState<string>("");
@@ -52,15 +74,19 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
     reset,
   } = useForm<FlightFormData>({
     defaultValues: {
-      aircraft_id: flight?.aircraft_id || "",
-      departure_airport_id: flight?.departure_airport_id || "",
-      arrival_airport_id: flight?.arrival_airport_id || "",
-      estimated_duration: flight?.estimated_duration || "",
-      price_usd: flight?.price_usd || 0,
-      status: flight?.status ?? 'Active',
+      aircraft_id: flight?.aircraft?.id || "",
+      departure_airport_id: flight?.departure_airport?.id || "",
+      arrival_airport_id: flight?.arrival_airport?.id || "",
+      estimated_duration: (flight?.estimated_duration as string) || "",
+      price_usd: parseFloat(flight?.price_usd as string) || 0,
+      status: flight?.status as string,
       is_recurring: flight?.is_recurring === "true",
-      departure_date: flight?.departure_date ? format(new Date(flight.departure_date), "yyyy-MM-dd") : "",
-      departure_time: flight?.departure_date ? format(new Date(flight.departure_date), "HH:mm") : "12:00",
+      departure_date: flight?.departure_date
+        ? format(new Date(flight.departure_date), "yyyy-MM-dd")
+        : "",
+      departure_time: flight?.departure_date
+        ? format(new Date(flight.departure_date), "HH:mm")
+        : "12:00",
     },
   });
 
@@ -68,15 +94,19 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
   useEffect(() => {
     if (flight) {
       reset({
-        aircraft_id: flight.aircraft_id || "",
-        departure_airport_id: flight.departure_airport_id || "",
-        arrival_airport_id: flight.arrival_airport_id || "",
-        estimated_duration: flight.estimated_duration || "",
-        price_usd: flight.price_usd || 0,
-        status: flight.status ?? 'Active',
+        aircraft_id: flight.aircraft?.id || "",
+        departure_airport_id: flight.departure_airport?.id || "",
+        arrival_airport_id: flight.arrival_airport?.id || "",
+        estimated_duration: (flight.estimated_duration as string) || "",
+        price_usd: parseFloat(flight.price_usd as string) || 0,
+        status: flight.status as string,
         is_recurring: flight.is_recurring === "true",
-        departure_date: flight.departure_date ? format(new Date(flight.departure_date), "yyyy-MM-dd") : "",
-        departure_time: flight.departure_date ? format(new Date(flight.departure_date), "HH:mm") : "12:00",
+        departure_date: flight.departure_date
+          ? format(new Date(flight.departure_date), "yyyy-MM-dd")
+          : "",
+        departure_time: flight.departure_date
+          ? format(new Date(flight.departure_date), "HH:mm")
+          : "12:00",
       });
     }
   }, [flight, reset]);
@@ -89,13 +119,16 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
   const { data: aircraftData } = useQuery({
     queryKey: ["aircraft"],
     queryFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/aircraft`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/aircraft`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch aircraft");
@@ -109,12 +142,15 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
   // Calculate price based on aircraft price_per_hour_usd and estimated duration
   useEffect(() => {
     if (selectedAircraftId && estimatedDuration && aircraftData?.data) {
-      const selectedAircraft = aircraftData.data.find((aircraft: any) => aircraft.id === selectedAircraftId);
+      const selectedAircraft = aircraftData.data.find(
+        (aircraft: any) => aircraft.id === selectedAircraftId
+      );
 
       if (selectedAircraft && selectedAircraft.price_per_hour_usd) {
         const duration = parseFloat(estimatedDuration);
         if (!isNaN(duration)) {
-          const calculatedPrice = selectedAircraft.price_per_hour_usd * duration;
+          const calculatedPrice =
+            selectedAircraft.price_per_hour_usd * duration;
           setValue("price_usd", calculatedPrice);
         }
       }
@@ -152,7 +188,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(apiData),
       });
@@ -169,8 +205,8 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
       return response.json();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({queryKey: ['flights']});
-      await queryClient.invalidateQueries({queryKey: ['flightWidgets']});
+      await queryClient.invalidateQueries({ queryKey: ["flights"] });
+      await queryClient.invalidateQueries({ queryKey: ["flightWidgets"] });
       setIsSubmitting(false);
       onOpenChange(false);
       toast.success("Flight updated successfully!");
@@ -189,15 +225,15 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
             setValue(formField, watch(formField)); // Ensure the field is touched
             // @ts-ignore - TypeScript doesn't know about setError
             control.setError(formField, {
-              type: 'server',
-              message: messages[0] as string
+              type: "server",
+              message: messages[0] as string,
             });
           }
         });
       } else {
         toast.error("Failed to update flight. Please try again.");
       }
-    }
+    },
   });
 
   const handleFormSubmit = async (data: FlightFormData) => {
@@ -207,7 +243,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
     const combinedData = {
       ...data,
       departure_date: `${data.departure_date} ${data.departure_time}`,
-      price_usd: Number(data.price_usd) // Ensure price_usd is preserved as a number
+      price_usd: Number(data.price_usd), // Ensure price_usd is preserved as a number
     };
 
     mutation.mutate(combinedData);
@@ -226,7 +262,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
             Update flight details and schedule information.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Aircraft Selection */}
@@ -287,11 +323,16 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                         <PopoverContent className="w-auto p-0 z-[100]">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
+                            selected={
+                              field.value ? new Date(field.value) : undefined
+                            }
                             onSelect={(date) => {
                               if (date) {
                                 // Format date as yyyy-MM-dd (e.g., 2023-12-31)
-                                const formattedDate = format(date, "yyyy-MM-dd");
+                                const formattedDate = format(
+                                  date,
+                                  "yyyy-MM-dd"
+                                );
                                 field.onChange(formattedDate);
                               }
                             }}
@@ -376,7 +417,10 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                     </Label>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Price is automatically calculated based on aircraft price per hour and estimated duration</p>
+                    <p>
+                      Price is automatically calculated based on aircraft price
+                      per hour and estimated duration
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -395,14 +439,13 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                 id="price_usd_display"
                 placeholder="Automatically calculated"
                 value={formattedPrice}
-                className={cn(
-                  "mt-2",
-                  errors.price_usd ? "border-red-500" : ""
-                )}
+                className={cn("mt-2", errors.price_usd ? "border-red-500" : "")}
                 readOnly
               />
               {errors.price_usd && (
-                <p className="text-sm text-red-600">{errors.price_usd.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.price_usd.message}
+                </p>
               )}
             </div>
 
@@ -417,22 +460,22 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                 <span className="text-red-500 ml-1">*</span>
               </Label>
               <Controller
-                  name="status"
-                  control={control}
-                  rules={{
-                    required: "Status is required",
-                  }}
-                  render={({ field }) => (
-                      <select
-                          id="status"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                      >
-                        <option value={'Active'}>Active</option>
-                        <option value={'Inactive'}>Inactive</option>
-                      </select>
-                  )}
+                name="status"
+                control={control}
+                rules={{
+                  required: "Status is required",
+                }}
+                render={({ field }) => (
+                  <select
+                    id="status"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  >
+                    <option value={"Active"}>Active</option>
+                    <option value={"Inactive"}>Inactive</option>
+                  </select>
+                )}
               />
               {errors.status && (
                 <p className="text-sm text-red-600">{errors.status.message}</p>
@@ -460,23 +503,35 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                     />
                   )}
                 />
-                <Label htmlFor="is_recurring" className="text-sm text-muted-foreground">
+                <Label
+                  htmlFor="is_recurring"
+                  className="text-sm text-muted-foreground"
+                >
                   This flight repeats on a schedule
                 </Label>
               </div>
               {errors.is_recurring && (
-                <p className="text-sm text-red-600">{errors.is_recurring.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.is_recurring.message}
+                </p>
               )}
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Update Flight
             </Button>
           </div>

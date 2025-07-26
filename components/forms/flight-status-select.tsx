@@ -21,7 +21,7 @@ import {
 
 interface FlightStatusSelectProps {
   label: string;
-  value?: FlightStatus;
+  value: FlightStatus;
   onChange: (value: FlightStatus) => void;
   error?: string;
   required?: boolean;
@@ -113,14 +113,14 @@ export function FlightStatusSelect({
           <SelectValue placeholder="Select flight status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem key={status} value={status.toString()}>
+          <SelectItem key={value} value={value.toString()}>
             <div className="flex items-center gap-2 w-full">
               <Badge
-                  variant={getStatusColor(status) as any}
-                  className="text-xs flex items-center gap-1"
+                variant={getStatusColor(value) as any}
+                className="text-xs flex items-center gap-1"
               >
-                {showIcon && getStatusIcon(status)}
-                {FLIGHT_STATUS_LABELS[status]}
+                {showIcon && getStatusIcon(value)}
+                {FLIGHT_STATUS_LABELS[value]}
               </Badge>
             </div>
           </SelectItem>

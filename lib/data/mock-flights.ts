@@ -1,11 +1,13 @@
 import {
     Airport,
-    Aircraft,
     Flight,
     FlightWithDetails,
     FlightStatus,
-    AircraftStatus
 } from "@/lib/types/flight";
+import {
+    Aircraft,
+    AircraftStatus
+} from "@/lib/types/aircraft";
 
 export const mockAircrafts: Aircraft[] = [
     {
@@ -17,9 +19,10 @@ export const mockAircrafts: Aircraft[] = [
         seating_capacity: 11,
         range_km: 2700,
         speed_kph: 580,
+        price_per_hour_usd: 2500,
         wifi_available: true,
-        image_url: "/placeholder.jpg",
         status: AircraftStatus.AVAILABLE,
+        media: [],
     },
     {
         id: "ac-2",
@@ -30,9 +33,10 @@ export const mockAircrafts: Aircraft[] = [
         seating_capacity: 8,
         range_km: 5956,
         speed_kph: 972,
+        price_per_hour_usd: 3500,
         wifi_available: true,
-        image_url: "/placeholder.jpg",
         status: AircraftStatus.AVAILABLE,
+        media: [],
     },
     {
         id: "ac-3",
@@ -43,9 +47,10 @@ export const mockAircrafts: Aircraft[] = [
         seating_capacity: 12,
         range_km: 8334,
         speed_kph: 913,
+        price_per_hour_usd: 5000,
         wifi_available: true,
-        image_url: "/placeholder.jpg",
         status: AircraftStatus.IN_FLIGHT,
+        media: [],
     },
     {
         id: "ac-4",
@@ -56,9 +61,10 @@ export const mockAircrafts: Aircraft[] = [
         seating_capacity: 9,
         range_km: 3815,
         speed_kph: 778,
+        price_per_hour_usd: 3000,
         wifi_available: false,
-        image_url: "/placeholder.jpg",
         status: AircraftStatus.MAINTENANCE,
+        media: [],
     },
     {
         id: "ac-5",
@@ -69,9 +75,10 @@ export const mockAircrafts: Aircraft[] = [
         seating_capacity: 14,
         range_km: 12501,
         speed_kph: 956,
+        price_per_hour_usd: 7500,
         wifi_available: true,
-        image_url: "/placeholder.jpg",
         status: AircraftStatus.AVAILABLE,
+        media: [],
     }
 ];
 

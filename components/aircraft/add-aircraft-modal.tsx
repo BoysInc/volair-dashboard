@@ -33,15 +33,13 @@ import {
 import { AIRCRAFT_MANUFACTURERS } from "@/lib/types/aircraft";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Plane, Wifi, WifiOff } from "lucide-react";
+import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
 
-interface AddAircraftModalProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export function AddAircraftModal({ open, onClose }: AddAircraftModalProps) {
+export function AddAircraftModal() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+  const { isOpen, isEditMode, isViewMode, closeModal } =
+    useAircraftModalStore();
 
   const {
     register,
@@ -60,6 +58,7 @@ export function AddAircraftModal({ open, onClose }: AddAircraftModalProps) {
       seating_capacity: 8,
       range_km: 1000,
       speed_kph: 500,
+      price_per_hour_usd: 1000,
       wifi_available: "true",
       media_ids: [],
       status: "Available",
@@ -75,11 +74,9 @@ export function AddAircraftModal({ open, onClose }: AddAircraftModalProps) {
         toast.error(result.error);
       } else {
         toast.success("Aircraft added successfully");
-        // Invalidate and refetch aircraft data
-        queryClient.invalidateQueries({ queryKey: ["aircrafts"] });
-        // Reset form and close modal
+        queryClient.refetchQueries({ queryKey: ["aircrafts"], exact: true });
         reset();
-        onClose();
+        closeModal();
       }
     },
     onError: (error) => {
@@ -93,11 +90,14 @@ export function AddAircraftModal({ open, onClose }: AddAircraftModalProps) {
 
   const handleClose = () => {
     reset();
-    onClose();
+    closeModal();
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog
+      open={isOpen && !isEditMode && !isViewMode}
+      onOpenChange={handleClose}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -206,6 +206,21 @@ export function AddAircraftModal({ open, onClose }: AddAircraftModalProps) {
                   placeholder="500"
                   registration={register("speed_kph", { valueAsNumber: true })}
                   error={errors.speed_kph?.message}
+                  required
+                />
+
+                <CustomInput
+                  id="price_per_hour_usd"
+                  label="Price per Hour (USD)"
+                  type="number"
+                  min="1"
+                  placeholder="1000"
+                  prefix="$"
+                  registration={register("price_per_hour_usd", {
+                    valueAsNumber: true,
+                  })}
+                  error={errors.price_per_hour_usd?.message}
+                  helperText="Hourly charter rate in USD"
                   required
                 />
 

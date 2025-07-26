@@ -16,11 +16,11 @@ export const BOOKING_STATUS_LABELS = {
 } as const;
 
 export const BOOKING_STATUS_COLORS = {
-    [BookingStatus.PENDING]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    [BookingStatus.CONFIRMED]: "bg-green-100 text-green-800 border-green-200",
-    [BookingStatus.CANCELLED]: "bg-red-100 text-red-800 border-red-200",
-    [BookingStatus.COMPLETED]: "bg-blue-100 text-blue-800 border-blue-200",
-    [BookingStatus.NO_SHOW]: "bg-gray-100 text-gray-800 border-gray-200",
+    [BookingStatus.PENDING]: "bg-amber-50 text-amber-700 border-amber-200",
+    [BookingStatus.CONFIRMED]: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    [BookingStatus.CANCELLED]: "bg-red-50 text-red-700 border-red-200",
+    [BookingStatus.COMPLETED]: "bg-teal-50 text-teal-700 border-teal-200",
+    [BookingStatus.NO_SHOW]: "bg-slate-50 text-slate-600 border-slate-200",
 } as const;
 
 // Payment Status Enum
@@ -39,10 +39,10 @@ export const PAYMENT_STATUS_LABELS = {
 } as const;
 
 export const PAYMENT_STATUS_COLORS = {
-    [PaymentStatus.PENDING]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    [PaymentStatus.COMPLETED]: "bg-green-100 text-green-800 border-green-200",
-    [PaymentStatus.FAILED]: "bg-red-100 text-red-800 border-red-200",
-    [PaymentStatus.REFUNDED]: "bg-orange-100 text-orange-800 border-orange-200",
+    [PaymentStatus.PENDING]: "bg-amber-50 text-amber-700 border-amber-200",
+    [PaymentStatus.COMPLETED]: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    [PaymentStatus.FAILED]: "bg-red-50 text-red-700 border-red-200",
+    [PaymentStatus.REFUNDED]: "bg-orange-50 text-orange-700 border-orange-200",
 } as const;
 
 // Payment Method Enum
@@ -82,12 +82,12 @@ export const FLIGHT_STATUS_LABELS = {
 } as const;
 
 export const FLIGHT_STATUS_COLORS = {
-    [FlightStatus.SCHEDULED]: "bg-blue-100 text-blue-800 border-blue-200",
-    [FlightStatus.BOARDING]: "bg-purple-100 text-purple-800 border-purple-200",
-    [FlightStatus.DEPARTED]: "bg-indigo-100 text-indigo-800 border-indigo-200",
-    [FlightStatus.ARRIVED]: "bg-green-100 text-green-800 border-green-200",
-    [FlightStatus.DELAYED]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    [FlightStatus.CANCELLED]: "bg-red-100 text-red-800 border-red-200",
+    [FlightStatus.SCHEDULED]: "bg-blue-50 text-blue-700 border-blue-200",
+    [FlightStatus.BOARDING]: "bg-purple-50 text-purple-700 border-purple-200",
+    [FlightStatus.DEPARTED]: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    [FlightStatus.ARRIVED]: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    [FlightStatus.DELAYED]: "bg-amber-50 text-amber-700 border-amber-200",
+    [FlightStatus.CANCELLED]: "bg-red-50 text-red-700 border-red-200",
 } as const;
 
 // Aircraft Status Enum

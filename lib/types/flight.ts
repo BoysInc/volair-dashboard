@@ -34,12 +34,26 @@ export interface Flight {
     estimated_duration: string; // Format: "2h 30m"
     status: string;
     price_usd: number;
+    is_recurring: boolean;
 }
 
 export interface FlightWithDetails extends Flight {
     aircraft: Aircraft;
     departure_airport: Airport;
     arrival_airport: Airport;
+}
+
+export interface EditFlightFormData {
+    aircraft_id: string;
+    departure_airport_id: string;
+    arrival_airport_id: string;
+    departure_date: string;
+    departure_time: string;
+    arrival_time: string;
+    estimated_duration: string;
+    price_usd: number;
+    status: FlightStatus;
+    is_recurring: boolean;
 }
 
 export interface FlightFormData {
@@ -87,4 +101,59 @@ export const AIRCRAFT_STATUS_LABELS: Record<AircraftStatus, string> = {
     [AircraftStatus.IN_FLIGHT]: "In Flight",
     [AircraftStatus.MAINTENANCE]: "Maintenance",
     [AircraftStatus.OUT_OF_SERVICE]: "Out of Service",
-}; 
+};
+
+// API Response Types for Get Operator Flights
+
+export interface FlightMedia {
+    id: string;
+    url: string;
+    type: "Image";
+    order: number;
+}
+
+export interface FlightAircraft {
+    id: string;
+    model_name: string;
+    manufacturer: string;
+    registration_number: string;
+    seating_capacity: number;
+    range_km: number;
+    speed_kph: number;
+    price_per_hour_usd: number;
+    wifi_available: boolean;
+    image_url: string;
+    status: string;
+    media: FlightMedia[];
+}
+
+export interface FlightAirport {
+    id: string;
+    name: string;
+    iata_code: string;
+    city: string;
+    address: string;
+    type: "Airport";
+    latitude: number | string; // API can return as string
+    longitude: number | string; // API can return as string
+}
+
+export interface OperatorFlight {
+    id: string;
+    aircraft: FlightAircraft;
+    departure_airport: FlightAirport;
+    arrival_airport: FlightAirport;
+    estimated_duration: string;
+    status: string;
+    price_usd: string;
+    is_recurring: string; // "true" or "false" as string
+    departure_date: string;
+}
+
+export type GetOperatorFlightsResponse = OperatorFlight[];
+
+export interface FlightWidgets {
+    active_flights: number;
+    completed_flights: number;
+    today_flights: number;
+}

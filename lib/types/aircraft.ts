@@ -5,6 +5,15 @@ export interface Media {
     type: string;
     order: number;
 }
+
+export interface AircraftWidget {
+    total_aircraft: number;
+    available_aircraft: number;
+    aircraft_under_maintenance: number;
+    available_capacity: number;
+    aircraft_with_wifi: number;
+}
+
 export interface Aircraft {
     id: string;
     operator_id: string;
@@ -14,6 +23,7 @@ export interface Aircraft {
     seating_capacity: number;
     range_km: number;
     speed_kph: number;
+    price_per_hour_usd: number;
     wifi_available: boolean;
     status: AircraftStatus;
     media: Media[];
@@ -26,20 +36,21 @@ export interface AircraftFormData {
     seating_capacity: number;
     range_km: number;
     speed_kph: number;
+    price_per_hour_usd: number;
     wifi_available: boolean;
     status: AircraftStatus;
 }
 
 export enum AircraftStatus {
-    AVAILABLE = 0,
-    IN_FLIGHT = 1,
-    MAINTENANCE = 2,
-    OUT_OF_SERVICE = 3,
+    AVAILABLE = "Available",
+    IN_FLIGHT = "InFlight",
+    MAINTENANCE = "Maintenance",
+    OUT_OF_SERVICE = "Out of Service",
 }
 
 export const AIRCRAFT_STATUS_LABELS: Record<AircraftStatus, string> = {
     [AircraftStatus.AVAILABLE]: "Available",
-    [AircraftStatus.IN_FLIGHT]: "In Flight",
+    [AircraftStatus.IN_FLIGHT]: "InFlight",
     [AircraftStatus.MAINTENANCE]: "Maintenance",
     [AircraftStatus.OUT_OF_SERVICE]: "Out of Service",
 };
@@ -69,4 +80,11 @@ export const AIRCRAFT_MODELS_BY_MANUFACTURER: Record<string, string[]> = {
     "Beechcraft": ["King Air 350", "King Air 250", "Premier 1A"],
     "Embraer": ["Legacy 600", "Phenom 300", "Lineage 1000"],
     "Other": ["Custom Model"]
-}; 
+};
+
+export interface DeleteAircraftError {
+    message: string;
+    errors: {
+        flights: string[];
+    }
+}

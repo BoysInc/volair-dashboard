@@ -1,4 +1,3 @@
-import { AddAircraftModal } from "@/components/aircraft/add-aircraft-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CardTitle } from "@/components/ui/card";
@@ -8,16 +7,17 @@ import { ErrorState } from "@/components/ui/error-state";
 import { CardSkeleton, LoadingState } from "@/components/ui/loading-state";
 import { getOperatorAircrafts } from "@/lib/server/aircraft/aircraft";
 import { useQuery } from "@tanstack/react-query";
-import { Edit, Eye, Plus } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { Edit, Eye, Plus, ArrowRight } from "lucide-react";
+import React, { useMemo } from "react";
+import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
+import Link from "next/link";
 
 type AircraftTabViewProps = {
   token: string;
 };
 
 const AircraftTabView = ({ token }: AircraftTabViewProps) => {
-  const [isAddAircraftModalOpen, setIsAddAircraftModalOpen] = useState(false);
-
+  const { openModal, openEditModal, openViewModal } = useAircraftModalStore();
   const { data: aircrafts, isLoading: isLoadingAircrafts } = useQuery({
     queryKey: ["aircrafts"],
     queryFn: () => getOperatorAircrafts(token),
@@ -67,77 +67,91 @@ const AircraftTabView = ({ token }: AircraftTabViewProps) => {
             Manage your aircraft inventory and specifications
           </p>
         </div>
-        <Button onClick={() => setIsAddAircraftModalOpen(true)}>
+        <Button onClick={() => openModal()}>
           <Plus className="mr-2 h-4 w-4" />
           Add Aircraft
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {aircraftsData &&
-          aircraftsData.map((aircraft) => (
-            <Card key={aircraft.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">
-                    {aircraft.model_name}
-                  </CardTitle>
-                  {aircraft.status}
-                </div>
-                <CardDescription>{aircraft.manufacturer}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <img
-                  src={aircraft?.media[0]?.url || "/placeholder.svg"}
-                  alt={aircraft.model_name}
-                  className="w-full h-32 object-cover rounded-md"
-                />
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Registration:</span>
-                    <span className="font-medium">
-                      {aircraft.registration_number}
-                    </span>
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {aircraftsData &&
+            aircraftsData.slice(0, 5).map((aircraft) => (
+              <Card key={aircraft.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">
+                      {aircraft.model_name}
+                    </CardTitle>
+                    {aircraft.status}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Capacity:</span>
-                    <span>{aircraft.seating_capacity} passengers</span>
+                  <CardDescription>{aircraft.manufacturer}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <img
+                    src={aircraft?.media[0]?.url || "/placeholder.svg"}
+                    alt={aircraft.model_name}
+                    className="w-full h-32 object-cover rounded-md"
+                  />
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Registration:
+                      </span>
+                      <span className="font-medium">
+                        {aircraft.registration_number}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Capacity:</span>
+                      <span>{aircraft.seating_capacity} passengers</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">WiFi:</span>
+                      <span>
+                        {aircraft.wifi_available
+                          ? "Available"
+                          : "Not Available"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">WiFi:</span>
-                    <span>
-                      {aircraft.wifi_available ? "Available" : "Not Available"}
-                    </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                      onClick={() => openViewModal(aircraft)}
+                    >
+                      <Eye className="mr-2 h-3 w-3" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                      onClick={() => openEditModal(aircraft)}
+                    >
+                      <Edit className="mr-2 h-3 w-3" />
+                      Edit
+                    </Button>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
-                  >
-                    <Eye className="mr-2 h-3 w-3" />
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
-                  >
-                    <Edit className="mr-2 h-3 w-3" />
-                    Edit
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-      </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
 
-      {/* Add Aircraft Modal */}
-      <AddAircraftModal
-        open={isAddAircraftModalOpen}
-        onClose={() => setIsAddAircraftModalOpen(false)}
-      />
+        {/* Show View All CTA if there are more than 5 aircraft */}
+        {aircraftsData && aircraftsData.length > 5 && (
+          <div className="flex justify-center pt-4">
+            <Link href="/aircraft">
+              <Button variant="outline" className="gap-2">
+                View All Aircraft ({aircraftsData.length})
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

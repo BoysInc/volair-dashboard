@@ -25,9 +25,14 @@ export const addAircraftSchema = z.object({
         .number()
         .min(1, "Speed must be at least 1 kph")
         .max(2000, "Speed must be at most 2,000 kph"),
+    price_per_hour_usd: z
+        .number()
+        .min(1, "Price per hour must be at least $1")
+        .max(50000, "Price per hour must be at most $50,000"),
     wifi_available: z.string().transform((val) => val ? "true" : "false"),
     media_ids: z.array(z.string()).optional().default([]),
-    status: z.enum(["Available", "In Flight", "Maintenance", "Out of Service"]).default("Available"),
+    status: z.enum(["Available", "InFlight", "Maintenance", "Out of Service"]).default("Available"),
 })
 
-export type AddAircraftFormData = z.infer<typeof addAircraftSchema> 
+export type AddAircraftFormData = z.infer<typeof addAircraftSchema>
+export type EditAircraftFormData = z.infer<ReturnType<typeof addAircraftSchema.partial>> 

@@ -13,28 +13,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Plus, Calendar, Plane } from "lucide-react";
-import {
-  FlightWithDetails,
-  FlightFormData,
-  FlightStatus,
-} from "@/lib/types/flight";
-import { FlightForm } from "@/components/flights/flight-form";
+
+import { Calendar, Plane } from "lucide-react";
+import { OperatorFlight } from "@/lib/types/flight";
+import { CreateFlightModal } from "@/components/flights/create-flight-modal";
 import { UpdateFlightModal } from "@/components/flights/update-flight-modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {getOperatorAircrafts} from "@/lib/server/aircraft/aircraft";
-import {useAuth} from "@/hooks/use-auth";
-import {useAuthStore} from "@/lib/store/auth-store";
+import { useAuth } from "@/hooks/use-auth";
+import { useAuthStore } from "@/lib/store/auth-store";
 import { Skeleton, TableSkeleton } from "@/components/ui/loading-state";
 import { toast } from "sonner";
+import {
+  getFlightWidgets,
+  getOperatorFlights,
+} from "@/lib/server/flights/flights";
 
 // Custom StatCardSkeleton component for the stats cards
 function StatCardSkeleton() {
@@ -53,8 +45,7 @@ function StatCardSkeleton() {
 }
 
 export default function FlightsPage() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingFlight, setEditingFlight] = useState<FlightWithDetails | null>(
+  const [editingFlight, setEditingFlight] = useState<OperatorFlight | null>(
     null
   );
 
@@ -71,7 +62,7 @@ export default function FlightsPage() {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -89,8 +80,8 @@ export default function FlightsPage() {
     },
     onSuccess: async () => {
       // Invalidate queries to refresh the data
-      await queryClient.invalidateQueries({queryKey: ['flights']});
-      await queryClient.invalidateQueries({queryKey: ['flightWidgets']});
+      await queryClient.refetchQueries({ queryKey: ["flights"] });
+      await queryClient.refetchQueries({ queryKey: ["flightWidgets"] });
       toast.success("Flight deleted successfully!");
     },
     onError: (error) => {
@@ -98,42 +89,31 @@ export default function FlightsPage() {
       toast.error("Failed to delete flight. Please try again.");
     },
   });
-  const { data } = useQuery({
+  const { data: flightWidgets } = useQuery({
     queryKey: ["flightWidgets"],
     queryFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/widgets`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      })
+      const { data, error } = await getFlightWidgets(operator?.id || "", token);
 
-      if (!response.ok) {
+      if (error !== null) {
         throw new Error("Failed to fetch flight widgets");
       }
-
-      return response.json()
+      return data;
     },
     enabled: !!token,
   });
 
-  const { data: flights, isLoading} = useQuery({
+  const { data: flights, isLoading } = useQuery({
     queryKey: ["flights"],
     queryFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      })
+      const { data, error } = await getOperatorFlights(
+        operator?.id || "",
+        token
+      );
 
-      if (!response.ok) {
+      if (error !== null) {
         throw new Error("Failed to fetch flights");
       }
-
-      return response.json()
+      return data;
     },
     enabled: !!token,
   });
@@ -161,35 +141,13 @@ export default function FlightsPage() {
                 Manage your flight schedules and aircraft assignments
               </p>
             </div>
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Schedule Flight
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Schedule New Flight</DialogTitle>
-                  <DialogDescription>
-                    Create a new flight schedule by selecting aircraft, route,
-                    and timing.
-                  </DialogDescription>
-                </DialogHeader>
-                <FlightForm
-                  onCancel={() => setIsCreateDialogOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
+            <CreateFlightModal />
           </div>
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-3">
             {/* Use the first query's isLoading state to determine whether to show skeletons */}
-            {!data ? (
+            {!flightWidgets ? (
               <>
                 <StatCardSkeleton />
                 <StatCardSkeleton />
@@ -205,7 +163,9 @@ export default function FlightsPage() {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{data?.today_flights}</div>
+                    <div className="text-2xl font-bold">
+                      {flightWidgets?.today_flights}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Scheduled for today
                     </p>
@@ -219,7 +179,9 @@ export default function FlightsPage() {
                     <Plane className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{data?.active_flights}</div>
+                    <div className="text-2xl font-bold">
+                      {flightWidgets?.active_flights}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Currently active
                     </p>
@@ -227,11 +189,15 @@ export default function FlightsPage() {
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Completed
+                    </CardTitle>
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{data?.completed_flights}</div>
+                    <div className="text-2xl font-bold">
+                      {flightWidgets?.completed_flights}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Flights completed
                     </p>
@@ -252,12 +218,11 @@ export default function FlightsPage() {
             <CardContent>
               {isLoading ? (
                 <TableSkeleton rows={5} />
-              ) : flights && flights.data ? (
+              ) : flights ? (
                 <FlightsTable
-                  flights={flights.data}
+                  flights={flights}
                   onEdit={setEditingFlight}
                   onDelete={(flightId) => deleteMutation.mutate(flightId)}
-                  onStatusUpdate={() => {}}
                 />
               ) : (
                 <div>No flight data available</div>

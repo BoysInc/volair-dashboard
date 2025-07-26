@@ -11,6 +11,7 @@ export function useAuth(requireAuth: boolean = false) {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const isLoading = useAuthStore((state) => state.isLoading);
     const hasHydrated = useAuthStore((state) => state.hasHydrated);
+    const operator = useAuthStore((state) => state.operator);
 
     const router = useRouter();
 
@@ -54,6 +55,7 @@ export function useAuth(requireAuth: boolean = false) {
         isAuthenticated,
         isLoading,
         signOut,
+        operator,
     };
 }
 

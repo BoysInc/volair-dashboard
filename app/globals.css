@@ -1,44 +1,71 @@
 @import "tailwindcss";
 
-/* Theme configuration */
+/* Theme configuration - Volair Brand Colors */
+
 @theme {
-  /* Colors */
-  --color-background: oklch(100% 0 0);
-  --color-foreground: oklch(9.8% 0 0);
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(9.8% 0 0);
+  /* Core Brand Colors */
+  --color-background: oklch(98.5% 0.005 240); /* #F6F8FA - Clean, professional background */
+  --color-foreground: oklch(15.8% 0.025 280); /* #030124 - Strong, readable primary text */
+  --color-card: oklch(100% 0 0); /* Pure white for card backgrounds */
+  --color-card-foreground: oklch(15.8% 0.025 280); /* #030124 - Primary text on cards */
   --color-popover: oklch(100% 0 0);
-  --color-popover-foreground: oklch(9.8% 0 0);
-  --color-primary: oklch(15.7% 0 0);
-  --color-primary-foreground: oklch(98% 0 0);
-  --color-secondary: oklch(96.1% 0 0);
-  --color-secondary-foreground: oklch(15.7% 0 0);
-  --color-muted: oklch(96.1% 0 0);
-  --color-muted-foreground: oklch(45.1% 0 0);
-  --color-accent: oklch(96.1% 0 0);
-  --color-accent-foreground: oklch(15.7% 0 0);
-  --color-destructive: oklch(59.2% 0.19 29.33);
+  --color-popover-foreground: oklch(15.8% 0.025 280);
+  
+  /* Primary Brand Color - Volair Teal */
+  --color-primary: oklch(48.5% 0.125 185); /* #078374 - Beautiful teal for primary actions */
+  --color-primary-foreground: oklch(98% 0 0); /* White text on primary */
+  
+  /* Secondary Colors */
+  --color-secondary: oklch(92.5% 0.008 240); /* #E2E4E9 - Soft background for secondary elements */
+  --color-secondary-foreground: oklch(15.8% 0.025 280); /* Dark text on secondary */
+  
+  /* Muted Colors for Subtle Elements */
+  --color-muted: oklch(95.5% 0.005 240); /* #F3F5F8 - Very light backgrounds */
+  --color-muted-foreground: oklch(52.5% 0.015 260); /* #7D8299 - Muted text */
+  
+  /* Accent Colors */
+  --color-accent: oklch(92.5% 0.008 240); /* #E2E4E9 - Soft accent */
+  --color-accent-foreground: oklch(15.8% 0.025 280); /* Dark text on accent */
+  
+  /* Status Colors */
+  --color-destructive: oklch(55.2% 0.19 29.33); /* Keep existing red for destructive actions */
   --color-destructive-foreground: oklch(98% 0 0);
-  --color-border: oklch(89.8% 0 0);
-  --color-input: oklch(89.8% 0 0);
-  --color-ring: oklch(9.8% 0 0);
   
-  /* Chart colors */
-  --color-chart-1: oklch(59.85% 0.155 29.16);
-  --color-chart-2: oklch(48.51% 0.13 191.67);
-  --color-chart-3: oklch(35.49% 0.094 223.23);
-  --color-chart-4: oklch(70.98% 0.146 70.08);
-  --color-chart-5: oklch(70.52% 0.19 49.36);
+  /* Border and Input Colors */
+  --color-border: oklch(89.5% 0.008 240); /* #E4E7EB - Subtle borders */
+  --color-input: oklch(89.5% 0.008 240); /* #E4E7EB - Input borders */
+  --color-ring: oklch(48.5% 0.125 185); /* Primary teal for focus rings */
   
-  /* Sidebar colors */
-  --color-sidebar-background: oklch(98% 0 0);
-  --color-sidebar-foreground: oklch(31.42% 0.014 273.44);
-  --color-sidebar-primary: oklch(15.7% 0 0);
+  /* Text Hierarchy - Professional Typography Scale */
+  --color-text-primary: oklch(15.8% 0.025 280); /* #030124 - Headings, important text */
+  --color-text-secondary: oklch(42.5% 0.015 260); /* #5E626A - Body text, labels */
+  --color-text-tertiary: oklch(52.5% 0.015 260); /* #7D8299 - Helper text, captions */
+  --color-text-quaternary: oklch(75.5% 0.008 240); /* #BEC1CE - Disabled text, placeholders */
+  
+  /* Enhanced Chart Colors - Professional Data Visualization */
+  --color-chart-1: oklch(48.5% 0.125 185); /* Primary teal */
+  --color-chart-2: oklch(55.2% 0.19 29.33); /* Complementary orange-red */
+  --color-chart-3: oklch(58.5% 0.155 240); /* Professional blue */
+  --color-chart-4: oklch(65.8% 0.145 85); /* Fresh green */
+  --color-chart-5: oklch(62.5% 0.165 320); /* Elegant purple */
+  
+  /* Enhanced Sidebar Colors */
+  --color-sidebar-background: oklch(100% 0 0); /* Clean white sidebar */
+  --color-sidebar-foreground: oklch(42.5% 0.015 260); /* #5E626A - Readable sidebar text */
+  --color-sidebar-primary: oklch(48.5% 0.125 185); /* Teal for active states */
   --color-sidebar-primary-foreground: oklch(98% 0 0);
-  --color-sidebar-accent: oklch(95.9% 0 0);
-  --color-sidebar-accent-foreground: oklch(15.7% 0 0);
-  --color-sidebar-border: oklch(91% 0.013 272.73);
-  --color-sidebar-ring: oklch(59.82% 0.175 255.85);
+  --color-sidebar-accent: oklch(95.5% 0.005 240); /* #F3F5F8 - Subtle hover states */
+  --color-sidebar-accent-foreground: oklch(15.8% 0.025 280);
+  --color-sidebar-border: oklch(92.5% 0.008 240); /* #E2E4E9 - Soft borders */
+  --color-sidebar-ring: oklch(48.5% 0.125 185); /* Teal focus rings */
+  
+  /* Professional Success/Warning/Info Colors */
+  --color-success: oklch(55.8% 0.125 145); /* Fresh green for success */
+  --color-success-foreground: oklch(98% 0 0);
+  --color-warning: oklch(68.5% 0.155 85); /* Professional amber for warnings */
+  --color-warning-foreground: oklch(15.8% 0.025 280);
+  --color-info: oklch(58.5% 0.155 240); /* Clear blue for info */
+  --color-info-foreground: oklch(98% 0 0);
   
   /* Other theme values */
   --radius: 0.5rem;
@@ -48,45 +75,10 @@
   --ease-accordion-up: cubic-bezier(0.87, 0, 0.13, 1);
 }
 
-/* Dark mode theme overrides */
-/* @media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: oklch(9.8% 0 0);
-    --color-foreground: oklch(98% 0 0);
-    --color-card: oklch(9.8% 0 0);
-    --color-card-foreground: oklch(98% 0 0);
-    --color-popover: oklch(9.8% 0 0);
-    --color-popover-foreground: oklch(98% 0 0);
-    --color-primary: oklch(98% 0 0);
-    --color-primary-foreground: oklch(15.7% 0 0);
-    --color-secondary: oklch(20% 0 0);
-    --color-secondary-foreground: oklch(98% 0 0);
-    --color-muted: oklch(20% 0 0);
-    --color-muted-foreground: oklch(63.9% 0 0);
-    --color-accent: oklch(20% 0 0);
-    --color-accent-foreground: oklch(98% 0 0);
-    --color-destructive: oklch(37.81% 0.14 29.23);
-    --color-destructive-foreground: oklch(98% 0 0);
-    --color-border: oklch(20% 0 0);
-    --color-input: oklch(20% 0 0);
-    --color-ring: oklch(83.1% 0 0);
-    
-    --color-chart-1: oklch(58.32% 0.21 255.85);
-    --color-chart-2: oklch(51.6% 0.18 178.66);
-    --color-chart-3: oklch(62.79% 0.21 67.53);
-    --color-chart-4: oklch(66.82% 0.18 290.48);
-    --color-chart-5: oklch(61.79% 0.17 16.42);
-    
-    --color-sidebar-background: oklch(15.7% 0 0);
-    --color-sidebar-foreground: oklch(95.9% 0 0);
-    --color-sidebar-primary: oklch(54.89% 0.211 255.25);
-    --color-sidebar-primary-foreground: oklch(100% 0 0);
-    --color-sidebar-accent: oklch(21.8% 0 0);
-    --color-sidebar-accent-foreground: oklch(95.9% 0 0);
-    --color-sidebar-border: oklch(21.8% 0 0);
-    --color-sidebar-ring: oklch(59.82% 0.175 255.85);
-  }
-} */
+
+
+
+
 
 /* Custom font */
 body {
@@ -121,6 +113,39 @@ body {
 
 @utility border-sidebar-border {
   border-color: var(--color-sidebar-border);
+}
+
+/* Professional Design Utilities - Volair Theme */
+@utility text-volair-primary {
+  color: oklch(48.5% 0.125 185);
+}
+
+@utility bg-volair-primary {
+  background-color: oklch(48.5% 0.125 185);
+}
+
+@utility bg-volair-soft {
+  background-color: oklch(92.5% 0.008 240);
+}
+
+@utility text-professional {
+  color: oklch(15.8% 0.025 280);
+}
+
+@utility text-professional-secondary {
+  color: oklch(42.5% 0.015 260);
+}
+
+@utility text-professional-muted {
+  color: oklch(52.5% 0.015 260);
+}
+
+@utility border-professional {
+  border-color: oklch(89.5% 0.008 240);
+}
+
+@utility bg-professional-background {
+  background-color: oklch(98.5% 0.005 240);
 }
 
 /* Custom keyframes */

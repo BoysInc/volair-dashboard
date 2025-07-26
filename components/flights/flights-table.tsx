@@ -40,16 +40,16 @@ import {
   MapPin,
 } from "lucide-react";
 import {
-  FlightWithDetails,
   FlightStatus,
   FLIGHT_STATUS_LABELS,
+  GetOperatorFlightsResponse,
+  OperatorFlight,
 } from "@/lib/types/flight";
 
 interface FlightsTableProps {
-  flights: FlightWithDetails[];
-  onEdit: (flight: FlightWithDetails) => void;
+  flights: GetOperatorFlightsResponse;
+  onEdit: (flight: OperatorFlight) => void;
   onDelete: (flightId: string) => void;
-  onStatusUpdate?: (flightId: string, newStatus: FlightStatus) => void;
 }
 
 const getStatusColor = (status: FlightStatus): string => {
@@ -72,59 +72,13 @@ const getStatusColor = (status: FlightStatus): string => {
   }
 };
 
-export function FlightsTable({
-  flights,
-  onEdit,
-  onDelete,
-  onStatusUpdate,
-}: FlightsTableProps) {
+export function FlightsTable({ flights, onEdit, onDelete }: FlightsTableProps) {
   const [deleteFlightId, setDeleteFlightId] = useState<string | null>(null);
 
   const handleDeleteConfirm = () => {
     if (deleteFlightId) {
       onDelete(deleteFlightId);
       setDeleteFlightId(null);
-    }
-  };
-
-  const getAvailableStatusTransitions = (
-    currentStatus: FlightStatus
-  ): FlightStatus[] => {
-    switch (currentStatus) {
-      case FlightStatus.SCHEDULED:
-        return [
-          FlightStatus.BOARDING,
-          FlightStatus.DELAYED,
-          FlightStatus.CANCELLED,
-        ];
-      case FlightStatus.BOARDING:
-        return [
-          FlightStatus.DEPARTED,
-          FlightStatus.DELAYED,
-          FlightStatus.CANCELLED,
-        ];
-      case FlightStatus.DEPARTED:
-        return [FlightStatus.IN_FLIGHT, FlightStatus.DELAYED];
-      case FlightStatus.IN_FLIGHT:
-        return [FlightStatus.ARRIVED];
-      case FlightStatus.DELAYED:
-        return [
-          FlightStatus.BOARDING,
-          FlightStatus.SCHEDULED,
-          FlightStatus.CANCELLED,
-        ];
-      case FlightStatus.ARRIVED:
-        return []; // Arrived flights typically don't change status
-      case FlightStatus.CANCELLED:
-        return [FlightStatus.SCHEDULED]; // Allow rescheduling cancelled flights
-      default:
-        return [];
-    }
-  };
-
-  const handleStatusUpdate = (flightId: string, newStatus: FlightStatus) => {
-    if (onStatusUpdate) {
-      onStatusUpdate(flightId, newStatus);
     }
   };
 
@@ -149,16 +103,16 @@ export function FlightsTable({
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
                       <span className="font-mono text-sm font-semibold">
-                        {flight.departure_airport.iata_code}
+                        {flight.departure_airport?.iata_code}
                       </span>
                       <MapPin className="h-3 w-3 text-muted-foreground" />
                       <span className="font-mono text-sm font-semibold">
-                        {flight.arrival_airport.iata_code}
+                        {flight.arrival_airport?.iata_code}
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {flight.departure_airport.city} →{" "}
-                      {flight.arrival_airport.city}
+                      {flight.departure_airport?.city} →{" "}
+                      {flight.arrival_airport?.city}
                     </div>
                   </div>
                 </div>
@@ -166,13 +120,14 @@ export function FlightsTable({
               <TableCell>
                 <div>
                   <div className="font-semibold">
-                    {flight.aircraft.registration_number}
+                    {flight.aircraft?.registration_number}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {flight.aircraft.manufacturer} {flight.aircraft.model_name}
+                    {flight.aircraft?.manufacturer}{" "}
+                    {flight.aircraft?.model_name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {flight.aircraft.seating_capacity} seats
+                    {flight.aircraft?.seating_capacity} seats
                   </div>
                 </div>
               </TableCell>
@@ -181,17 +136,17 @@ export function FlightsTable({
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-semibold">
-                      {flight.departure_date}
+                      {flight.departure_date
+                        ? format(new Date(flight.departure_date), "MMM d, yyyy")
+                        : "N/A"}
                     </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
-                {flight.status}
-              </TableCell>
+              <TableCell>{flight.status}</TableCell>
               <TableCell>
                 <div className="font-semibold">
-                  {formatCurrency(flight.price_usd)}
+                  {flight.price_usd ? formatCurrency(flight.price_usd) : "N/A"}
                 </div>
               </TableCell>
               <TableCell>

@@ -22,6 +22,9 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import AircraftTabView from "@/app/(home)/component/AircraftTabView";
 import StatCards from "@/app/(home)/component/StatCards";
+import { useQuery } from "@tanstack/react-query";
+import { getOperatorAircrafts } from "@/lib/server/aircraft/aircraft";
+import FlightScheduleTabView from "@/app/(home)/component/flight-schedule-tab-view";
 
 // Mock data based on the database schema
 const mockStats = {
@@ -145,6 +148,15 @@ function getStatusBadge(
 export function DashboardOverview() {
   const { token } = useAuth(true);
 
+  const { data: aircrafts } = useQuery({
+    queryKey: ["aircrafts"],
+    queryFn: () => getOperatorAircrafts(token || ""),
+    enabled: !!token,
+  });
+
+  console.log(aircrafts);
+  console.log(token);
+
   return (
     <div className="space-y-6">
       <StatCards token={token || ""} />
@@ -154,7 +166,7 @@ export function DashboardOverview() {
         <TabsList>
           <TabsTrigger value="aircraft">Aircraft Fleet</TabsTrigger>
           <TabsTrigger value="flights">Flight Schedule</TabsTrigger>
-          <TabsTrigger value="bookings">Recent Bookings</TabsTrigger>
+          {/* <TabsTrigger value="bookings">Recent Bookings</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="aircraft" className="space-y-4">
@@ -162,90 +174,7 @@ export function DashboardOverview() {
         </TabsContent>
 
         <TabsContent value="flights" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium">Flight Schedule</h3>
-              <p className="text-sm text-muted-foreground">
-                Manage your flight schedules and routes
-              </p>
-            </div>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Schedule Flight
-            </Button>
-          </div>
-
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aircraft</TableHead>
-                  <TableHead>Route</TableHead>
-                  <TableHead>Departure</TableHead>
-                  <TableHead>Arrival</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Bookings</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockFlights.map((flight) => (
-                  <TableRow key={flight.id}>
-                    <TableCell className="font-medium">
-                      {flight.aircraft}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3 w-3" />
-                        {flight.departure} → {flight.arrival}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        {new Date(flight.departure_time).toLocaleTimeString(
-                          "en-US",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(flight.arrival_time).toLocaleTimeString(
-                        "en-US",
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      )}
-                    </TableCell>
-                    <TableCell>${flight.price_usd.toLocaleString()}</TableCell>
-                    <TableCell>{flight.bookings} passengers</TableCell>
-                    <TableCell>
-                      {getStatusBadge(flight.status, "flight")}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Flight</DropdownMenuItem>
-                          <DropdownMenuItem>Cancel Flight</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+          <FlightScheduleTabView />
         </TabsContent>
 
         <TabsContent value="bookings" className="space-y-4">
