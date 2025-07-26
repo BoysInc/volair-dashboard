@@ -8,7 +8,7 @@ import { AirportSelect } from "@/components/forms/airport-select";
 import { AircraftSelect } from "@/components/forms/aircraft-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar as CalendarIcon, Clock, DollarSign, Activity, Repeat, Timer } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, DollarSign, Activity, Repeat, Timer } from "lucide-react";
 import {
   FlightWithDetails,
   FlightFormData,

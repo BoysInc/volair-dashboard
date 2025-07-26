@@ -8,20 +8,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { cn, formatNumberWithCommas } from "@/lib/utils";
 import {
   Aircraft,
-  AircraftStatus,
-  AIRCRAFT_STATUS_LABELS,
 } from "@/lib/types/flight";
 import {useAuth} from "@/hooks/use-auth";
 import {useQuery} from "@tanstack/react-query";
-import React, {useEffect} from "react";
+import React from "react";
 
 interface AircraftSelectProps {
   label: string;
-  value?: Aircraft;
+  value?: string|Aircraft;
   onChange: (value: string) => void;
   error?: string;
   required?: boolean;
@@ -67,7 +64,7 @@ export function AircraftSelect({
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      <Select value={value?.id || ""} onValueChange={onChange} disabled={disabled || isLoading}>
+      <Select value={typeof value === 'string' ? value : value?.id || ""} onValueChange={onChange} disabled={disabled || isLoading}>
         <SelectTrigger
           className={cn('mt-2', error && "border-red-500 focus:ring-red-500")}
         >

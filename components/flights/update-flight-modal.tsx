@@ -14,7 +14,6 @@ import {
   FlightFormData,
 } from "@/lib/types/flight";
 import { formatNumberWithCommas, cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {Aircraft} from "@/lib/types/flight";
 
 interface UpdateFlightModalProps {
   flight: FlightWithDetails;
@@ -95,45 +93,25 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
     }
   }, [flight, reset]);
 
-  const selectedAircraftId = watch("aircraft_id");
-  const estimatedDuration = watch("estimated_duration");
   const price_usd = watch("price_usd");
 
-  // Fetch aircraft data
-  const { data: aircraftData } = useQuery({
-    queryKey: ["aircraft"],
-    queryFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/aircraft`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch aircraft");
-      }
-
-      return response.json();
-    },
-    enabled: !!token,
-  });
-
-  // Calculate price based on aircraft price_per_hour_usd and estimated duration
+  // Watch for changes in aircraft and estimated_duration to update price
+  const selectedAircraft = watch("aircraft");
+  const estimatedDuration = watch("estimated_duration");
+  
   useEffect(() => {
-    if (selectedAircraftId && estimatedDuration && aircraftData?.data) {
-      const selectedAircraft = aircraftData.data.find((aircraft: any) => aircraft.id === selectedAircraftId);
-
-      if (selectedAircraft && selectedAircraft.price_per_hour_usd) {
-        const duration = parseFloat(estimatedDuration);
-        if (!isNaN(duration)) {
-          const calculatedPrice = selectedAircraft.price_per_hour_usd * duration;
-          setValue("price_usd", calculatedPrice);
-        }
+    // Calculate price when aircraft or duration changes
+    if (selectedAircraft && selectedAircraft.price_per_hour_usd && estimatedDuration) {
+      // Parse the duration as a number
+      const durationHours = parseFloat(estimatedDuration);
+      if (!isNaN(durationHours)) {
+        // Calculate the new price
+        const calculatedPrice = selectedAircraft.price_per_hour_usd * durationHours;
+        // Update the price_usd field
+        setValue("price_usd", calculatedPrice);
       }
     }
-  }, [selectedAircraftId, estimatedDuration, aircraftData, setValue]);
+  }, [selectedAircraft, estimatedDuration, setValue]);
 
   // Format price with commas for display
   useEffect(() => {
@@ -392,7 +370,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              {/* Hidden input for the actual numeric value */}
+              {/* Hidden input for form validation */}
               <input
                 type="hidden"
                 {...register("price_usd", {
@@ -400,18 +378,26 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                   min: { value: 1, message: "Price must be greater than 0" },
                   valueAsNumber: true,
                 })}
-                value={price_usd}
               />
-              {/* Display input for the formatted value */}
+              {/* Editable input for price */}
               <Input
                 id="price_usd_display"
                 placeholder="Automatically calculated"
                 value={formattedPrice}
+                onChange={(e) => {
+                  // Remove commas and non-numeric characters
+                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
+                  // Parse as number
+                  const parsedValue = parseFloat(numericValue);
+                  // Update the form value
+                  setValue("price_usd", isNaN(parsedValue) ? 0 : parsedValue);
+                  // Update the formatted display
+                  setFormattedPrice(numericValue);
+                }}
                 className={cn(
                   "mt-2",
                   errors.price_usd ? "border-red-500" : ""
                 )}
-                readOnly
               />
               {errors.price_usd && (
                 <p className="text-sm text-red-600">{errors.price_usd.message}</p>

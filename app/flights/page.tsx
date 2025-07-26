@@ -69,7 +69,8 @@ export default function FlightsPage() {
       );
       
       if (!response.ok) {
-        throw new Error("Failed to fetch flight");
+        toast.error("Failed to fetch flight");
+        return null;
       }
 
       return await response.json();
