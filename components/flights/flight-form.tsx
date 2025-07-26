@@ -1,32 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { AirportSelect } from "@/components/forms/airport-select";
 import { AircraftSelect } from "@/components/forms/aircraft-select";
-import { FlightStatusSelect } from "@/components/forms/flight-status-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Calendar as CalendarIcon, Clock, DollarSign, Activity, Repeat, Timer } from "lucide-react";
 import {
   FlightWithDetails,
   FlightFormData,
-  FlightStatus,
 } from "@/lib/types/flight";
 import { formatNumberWithCommas, cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { format, differenceInMinutes } from "date-fns";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import {useAuthStore} from "@/lib/store/auth-store";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 
 interface FlightFormProps {
   flight?: FlightWithDetails; // For editing existing flight
