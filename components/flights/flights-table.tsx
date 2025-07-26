@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -78,6 +79,7 @@ export function FlightsTable({
   onDelete,
   onStatusUpdate,
 }: FlightsTableProps) {
+  const router = useRouter();
   const [deleteFlightId, setDeleteFlightId] = useState<string | null>(null);
 
   const handleDeleteConfirm = () => {
@@ -204,7 +206,10 @@ export function FlightsTable({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(flight)}>
+                    <DropdownMenuItem onClick={() => {
+                      // Update URL with flightId parameter instead of directly calling onEdit
+                      router.push(`?flightId=${flight.id}`);
+                    }}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edit Flight
                     </DropdownMenuItem>

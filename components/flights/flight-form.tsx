@@ -57,6 +57,7 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
       is_recurring: false,
       departure_date: flight?.departure_date || "",
       departure_time: flight?.departure_date ? format(new Date(flight.departure_date), "HH:mm") : "12:00",
+      is_empty_leg: flight?.is_empty_leg,
     },
   });
 
@@ -64,8 +65,6 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
   const selectedAircraftId = watch("aircraft_id");
   const estimatedDuration = watch("estimated_duration");
   const price_usd = watch("price_usd");
-  const departure_date = watch("departure_date");
-  const departure_time = watch("departure_time");
 
   // Fetch aircraft data
   const { data: aircraftData } = useQuery({
@@ -116,18 +115,16 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
   const operator = useAuthStore((state) => state.operator);
   const mutation = useMutation({
     mutationFn: async (data: FlightFormData) => {
-      // Remove departure_time from API data since it's now combined with departure_date
-      const { departure_time, ...rest } = data;
-
       const apiData = {
-        aircraft_id: rest.aircraft_id,
-        departure_airport_id: rest.departure_airport_id,
-        arrival_airport_id: rest.arrival_airport_id,
-        estimated_duration: rest.estimated_duration,
-        status: rest.status,
-        price_usd: Number(rest.price_usd), // Ensure price_usd is a number
-        is_recurring: rest.is_recurring ? "true" : "false",
-        departure_date: rest.departure_date,
+        aircraft_id: data.aircraft_id,
+        departure_airport_id: data.departure_airport_id,
+        arrival_airport_id: data.arrival_airport_id,
+        estimated_duration: data.estimated_duration,
+        status: data.status,
+        price_usd: Number(data.price_usd), // Ensure price_usd is a number
+        is_recurring: data.is_recurring ? "true" : "false",
+        departure_date: data.departure_date,
+        is_empty_leg: data.is_empty_leg ? "true" : "false",
       };
 
       const url = isEditing 
@@ -191,10 +188,18 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
   const handleFormSubmit = async (data: FlightFormData) => {
     setIsSubmitting(true);
 
-    // Combine date and time for submission
+    // Parse the date and format it as 'Y-m-d H:i' before submission
+    let formattedDate = data.departure_date;
+    if (data.departure_date) {
+      // If the input contains both date and time (from datetime-local)
+      const dateObj = new Date(data.departure_date);
+      formattedDate = format(dateObj, 'yyyy-MM-dd HH:mm');
+    }
+
+    // Combine with formatted date for submission
     const combinedData = {
       ...data,
-      departure_date: `${data.departure_date} ${data.departure_time}`,
+      departure_date: formattedDate,
       price_usd: Number(data.price_usd) // Ensure price_usd is preserved as a number
     };
 
@@ -281,40 +286,15 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
                 control={control}
                 rules={{ required: "Departure date is required" }}
                 render={({ field }) => (
-                  <Popover modal={true}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                          errors.departure_date && "border-red-500"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          // Display in a user-friendly format, but store in the required format
-                          format(new Date(field.value), "PPP")
-                        ) : (
-                          <span>Select date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-[100]">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            // Format date as yyyy-MM-dd (e.g., 2023-12-31)
-                            const formattedDate = format(date, "yyyy-MM-dd");
-                            field.onChange(formattedDate);
-                          }
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <CustomInput
+                    type="datetime-local"
+                    label=""
+                    id="departure_date"
+                    {...field}
+                    className={cn(
+                      errors.departure_date ? "border-red-500" : ""
+                    )}
+                  />
                 )}
               />
               {errors.departure_date && (
@@ -322,29 +302,6 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
                   {errors.departure_date.message}
                 </p>
               )}
-            </div>
-
-            {/* Time Picker */}
-            <div className="md:w-40">
-              <Controller
-                name="departure_time"
-                control={control}
-                rules={{ required: "Departure time is required" }}
-                render={({ field }) => (
-                  <div className="flex items-center">
-                    <CustomInput
-                      type="time"
-                      label=""
-                      placeholder="Select time"
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={errors.departure_time?.message}
-                      className="w-full"
-                      prefix={<Clock className="h-4 w-4" />}
-                    />
-                  </div>
-                )}
-              />
             </div>
           </div>
         </div>
@@ -456,7 +413,7 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
         </div>
 
         {/* Is Recurring */}
-        <div className="space-y-2 md:col-span-2">
+        <div className="space-y-2">
           <Label
             htmlFor="is_recurring"
             className="text-sm font-medium flex items-center gap-2"
@@ -482,6 +439,32 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
           </div>
           {errors.is_recurring && (
             <p className="text-sm text-red-600">{errors.is_recurring.message}</p>
+          )}
+        </div>
+
+        {/* Is empty leg */}
+        <div className="space-y-2">
+          <Label
+              htmlFor="is_empty_leg"
+              className="text-sm font-medium flex items-center gap-2"
+          >
+            Is this an empty leg flight?
+          </Label>
+          <div className="flex items-center space-x-2 mt-2">
+            <Controller
+                name="is_empty_leg"
+                control={control}
+                render={({ field }) => (
+                    <Switch
+                        id="is_empty_leg"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                )}
+            />
+          </div>
+          {errors.is_empty_leg && (
+              <p className="text-sm text-red-600">{errors.is_empty_leg.message}</p>
           )}
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -30,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {Aircraft} from "@/lib/types/flight";
 
 interface UpdateFlightModalProps {
   flight: FlightWithDetails;
@@ -38,9 +40,20 @@ interface UpdateFlightModalProps {
 }
 
 export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightModalProps) {
+  const router = useRouter();
   const { token } = useAuth(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formattedPrice, setFormattedPrice] = useState<string>("");
+  
+  // Custom handler to close the modal and remove flightId from URL
+  const handleCloseModal = (isOpen: boolean) => {
+    if (!isOpen) {
+      // Remove flightId from URL when modal is closed
+      router.push(window.location.pathname);
+    }
+    // Call the original onOpenChange function
+    onOpenChange(isOpen);
+  };
 
   const {
     register,
@@ -52,15 +65,15 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
     reset,
   } = useForm<FlightFormData>({
     defaultValues: {
-      aircraft_id: flight?.aircraft_id || "",
+      aircraft: flight?.aircraft || "",
       departure_airport_id: flight?.departure_airport_id || "",
       arrival_airport_id: flight?.arrival_airport_id || "",
       estimated_duration: flight?.estimated_duration || "",
       price_usd: flight?.price_usd || 0,
       status: flight?.status ?? 'Active',
-      is_recurring: flight?.is_recurring === "true",
+      is_recurring: flight?.is_recurring,
+      is_empty_leg: flight?.is_empty_leg,
       departure_date: flight?.departure_date ? format(new Date(flight.departure_date), "yyyy-MM-dd") : "",
-      departure_time: flight?.departure_date ? format(new Date(flight.departure_date), "HH:mm") : "12:00",
     },
   });
 
@@ -68,13 +81,14 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
   useEffect(() => {
     if (flight) {
       reset({
-        aircraft_id: flight.aircraft_id || "",
+        aircraft: flight.aircraft || "",
         departure_airport_id: flight.departure_airport_id || "",
         arrival_airport_id: flight.arrival_airport_id || "",
         estimated_duration: flight.estimated_duration || "",
         price_usd: flight.price_usd || 0,
         status: flight.status ?? 'Active',
-        is_recurring: flight.is_recurring === "true",
+        is_recurring: flight.is_recurring,
+        is_empty_leg: flight.is_empty_leg,
         departure_date: flight.departure_date ? format(new Date(flight.departure_date), "yyyy-MM-dd") : "",
         departure_time: flight.departure_date ? format(new Date(flight.departure_date), "HH:mm") : "12:00",
       });
@@ -134,16 +148,14 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
   const operator = useAuthStore((state) => state.operator);
   const mutation = useMutation({
     mutationFn: async (data: FlightFormData) => {
-      // Remove departure_time from API data since it's now combined with departure_date
-      const { departure_time, ...rest } = data;
-
       const apiData = {
-        aircraft_id: rest.aircraft_id,
-        departure_date: rest.departure_date,
-        estimated_duration: rest.estimated_duration,
-        status: rest.status,
-        price_usd: Number(rest.price_usd), // Ensure price_usd is a number
-        is_recurring: rest.is_recurring ? "true" : "false",
+        aircraft_id: data.aircraft.id,
+        departure_date: data.departure_date,
+        estimated_duration: data.estimated_duration,
+        status: data.status,
+        price_usd: Number(data.price_usd), // Ensure price_usd is a number
+        is_recurring: data.is_recurring ? "true" : "false",
+        is_empty_leg: data.is_empty_leg ? "true" : "false",
       };
 
       const url = `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/${flight?.id}`;
@@ -172,7 +184,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
       await queryClient.invalidateQueries({queryKey: ['flights']});
       await queryClient.invalidateQueries({queryKey: ['flightWidgets']});
       setIsSubmitting(false);
-      onOpenChange(false);
+      handleCloseModal(false);
       toast.success("Flight updated successfully!");
     },
     onError: (error: any) => {
@@ -214,11 +226,11 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
   };
 
   const handleCancel = () => {
-    onOpenChange(false);
+    handleCloseModal(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleCloseModal}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Update Flight</DialogTitle>
@@ -232,7 +244,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
             {/* Aircraft Selection */}
             <div className="md:col-span-2">
               <Controller
-                name="aircraft_id"
+                name="aircraft"
                 control={control}
                 rules={{ required: "Aircraft is required" }}
                 render={({ field }) => (
@@ -390,7 +402,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
                 })}
                 value={price_usd}
               />
-              {/* Display input for formatted value */}
+              {/* Display input for the formatted value */}
               <Input
                 id="price_usd_display"
                 placeholder="Automatically calculated"
@@ -440,7 +452,7 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
             </div>
 
             {/* Is Recurring */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label
                 htmlFor="is_recurring"
                 className="text-sm font-medium flex items-center gap-2"
@@ -466,6 +478,32 @@ export function UpdateFlightModal({ flight, open, onOpenChange }: UpdateFlightMo
               </div>
               {errors.is_recurring && (
                 <p className="text-sm text-red-600">{errors.is_recurring.message}</p>
+              )}
+            </div>
+
+            {/* Is empty leg */}
+            <div className="space-y-2">
+              <Label
+                  htmlFor="is_empty_leg"
+                  className="text-sm font-medium flex items-center gap-2"
+              >
+                Is this an empty leg flight?
+              </Label>
+              <div className="flex items-center space-x-2 mt-2">
+                <Controller
+                    name="is_empty_leg"
+                    control={control}
+                    render={({ field }) => (
+                        <Switch
+                            id="is_empty_leg"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                    )}
+                />
+              </div>
+              {errors.is_empty_leg && (
+                  <p className="text-sm text-red-600">{errors.is_empty_leg.message}</p>
               )}
             </div>
           </div>

@@ -17,11 +17,11 @@ import {
 } from "@/lib/types/flight";
 import {useAuth} from "@/hooks/use-auth";
 import {useQuery} from "@tanstack/react-query";
-import React from "react";
+import React, {useEffect} from "react";
 
 interface AircraftSelectProps {
   label: string;
-  value?: string;
+  value?: Aircraft;
   onChange: (value: string) => void;
   error?: string;
   required?: boolean;
@@ -61,28 +61,13 @@ export function AircraftSelect({
     enabled: !!token,
   });
 
-  const getStatusColor = (status: AircraftStatus) => {
-    switch (status) {
-      case AircraftStatus.AVAILABLE:
-        return "default";
-      case AircraftStatus.IN_FLIGHT:
-        return "secondary";
-      case AircraftStatus.MAINTENANCE:
-        return "destructive";
-      case AircraftStatus.OUT_OF_SERVICE:
-        return "destructive";
-      default:
-        return "default";
-    }
-  };
-
   return (
     <div className={cn("space-y-2", className)}>
       <Label htmlFor={fieldId} className="text-sm font-medium">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      <Select value={value || ""} onValueChange={onChange} disabled={disabled || isLoading}>
+      <Select value={value?.id || ""} onValueChange={onChange} disabled={disabled || isLoading}>
         <SelectTrigger
           className={cn('mt-2', error && "border-red-500 focus:ring-red-500")}
         >
