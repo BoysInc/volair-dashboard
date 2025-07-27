@@ -17,11 +17,7 @@ import { useFlightModalStore } from "@/lib/store/flight-modal-store";
 import { AircraftSelect } from "@/components/forms/aircraft-select";
 import { AirportSelect } from "@/components/forms/airport-select";
 import { FlightStatusSelect } from "@/components/forms/flight-status-select";
-import {
-  EditFlightFormData,
-  FlightFormData,
-  FlightStatus,
-} from "@/lib/types/flight";
+import { EditFlightFormData, FlightStatus } from "@/lib/types/flight";
 import {
   MapPin,
   Clock,
@@ -106,19 +102,6 @@ export function EditFlightModal() {
     queryClient.refetchQueries({ queryKey: ["flights"] });
 
     closeModal();
-
-    try {
-      // TODO: Implement API call to update flight
-      console.log("Updating flight:", data);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Close modal on success
-      closeModal();
-    } catch (error) {
-      console.error("Error updating flight:", error);
-    }
   };
 
   const handleClose = () => {

@@ -6,7 +6,7 @@ import { DeleteAircraftErrorEnum } from "@/lib/utils/aircraft";
 import { AddAircraftFormData } from "@/lib/validations/aircraft";
 
 export const getOperatorAircrafts = async (token: string | null): Promise<{ data: Aircraft[] | null, error: string | null }> => {
-    console.log("Token: ", token);
+    // console.log("Token: ", token);
 
     const { data, error } = await tryCatch(
         fetch(`${process.env.BACKEND_BASE_API}/aircraft`, {
@@ -32,7 +32,7 @@ export const getOperatorAircrafts = async (token: string | null): Promise<{ data
         return { data: null, error: aircraftsError.message };
     }
 
-    console.log("Aircrafts: %j", aircrafts?.data);
+    // console.log("Aircrafts: %j", aircrafts?.data);
 
     return { data: aircrafts?.data as Aircraft[], error: null };
 }
@@ -59,7 +59,7 @@ export const createAircraft = async (
 
     const { data: aircraft, error: aircraftError } = await tryCatch(data.json())
 
-    console.log("data", data);
+    // console.log("data", data);
 
 
     if (!data.ok) {
@@ -139,7 +139,7 @@ export const updateAircraft = async (
 
     const { data: aircraft, error: aircraftError } = await tryCatch(data.json())
 
-    console.log("Aircraft data", aircraft);
+    // console.log("Aircraft data", aircraft);
     if (!data.ok) {
         return { data: null, error: "Failed to update aircraft: " + aircraft?.message };
     }

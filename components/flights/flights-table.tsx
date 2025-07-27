@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -42,7 +41,6 @@ import {
 } from "lucide-react";
 import {
   FlightStatus,
-  FLIGHT_STATUS_LABELS,
   GetOperatorFlightsResponse,
   OperatorFlight,
 } from "@/lib/types/flight";
@@ -98,7 +96,7 @@ export function FlightsTable({ flights, onEdit, onDelete }: FlightsTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {flights.map((flight) => (
+          {flights?.map((flight) => (
             <TableRow key={flight.id}>
               <TableCell>
                 <div className="flex items-center gap-2">

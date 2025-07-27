@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, MapPin, Building } from "lucide-react";
+import { Plus, Building } from "lucide-react";
 import { Airport } from "@/lib/types/flight";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,46 +34,52 @@ export default function AirportsPage() {
 
   const { token } = useAuth(true);
   const queryClient = useQueryClient();
-  
+
   const { data: airports, isLoading } = useQuery({
     queryKey: ["airports"],
     queryFn: async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch airports");
       }
 
-      return response.json()
+      return response.json();
     },
     enabled: !!token,
   });
-  
+
   const deleteAirportMutation = useMutation({
     mutationFn: async (airportId: string) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports/${airportId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports/${airportId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Failed to delete airport");
       }
-      
+
       // Handle 204 No Content response
       if (response.status === 204) {
         return null; // No content to return
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -87,80 +91,66 @@ export default function AirportsPage() {
       toast.error("Failed to delete airport. Please try again.");
     },
   });
-  
+
   const handleDeleteAirport = (airportId: string) => {
     deleteAirportMutation.mutate(airportId);
   };
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <AppSidebar />
-      <SidebarInset className="relative">
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
-          <SidebarTrigger />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>Airport Management</span>
-          </div>
-        </header>
+    <DashboardLayout
+      title="Airports"
+      description="Manage airports and destinations"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Airports</h1>
+          <p className="text-muted-foreground">
+            Manage airports and destinations
+          </p>
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Airport
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add New Airport</DialogTitle>
+            </DialogHeader>
+            <AirportForm onCancel={() => setIsCreateDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        <div className="flex flex-1 flex-col gap-6 p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Airports
-              </h1>
-            </div>
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Airport
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add New Airport</DialogTitle>
-                </DialogHeader>
-                <AirportForm
-                  onCancel={() => setIsCreateDialogOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Airports Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Airport Database</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading || !airports ? (
-                <TableSkeleton rows={5} />
-              ) : (
-                <AirportsTable
-                  airports={airports?.data ?? []}
-                  onEdit={setEditingAirport}
-                  onDelete={handleDeleteAirport}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Edit Airport Modal */}
-          {editingAirport && (
-            <UpdateAirportModal
-              airport={editingAirport}
-              open={!!editingAirport}
-              onOpenChange={(open) => !open && setEditingAirport(null)}
+      {/* Airports Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Airport Database</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading || !airports ? (
+            <TableSkeleton rows={5} />
+          ) : (
+            <AirportsTable
+              airports={airports?.data ?? []}
+              onEdit={setEditingAirport}
+              onDelete={handleDeleteAirport}
             />
           )}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </CardContent>
+      </Card>
+
+      {/* Edit Airport Modal */}
+      {editingAirport && (
+        <UpdateAirportModal
+          airport={editingAirport}
+          open={!!editingAirport}
+          onOpenChange={(open) => !open && setEditingAirport(null)}
+        />
+      )}
+    </DashboardLayout>
   );
 }

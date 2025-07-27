@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 // Menu items for the operator dashboard
 const items = [
@@ -53,30 +54,30 @@ const items = [
     icon: Calendar,
     description: "Flight operations",
   },
-  {
-    title: "Bookings",
-    url: "/bookings",
-    icon: BookOpen,
-    description: "Passenger bookings",
-  },
+  // {
+  //   title: "Bookings",
+  //   url: "/bookings",
+  //   icon: BookOpen,
+  //   description: "Passenger bookings",
+  // },
   {
     title: "Airports",
     url: "/airports",
     icon: MapPin,
     description: "Airport network",
   },
-  {
-    title: "Revenue",
-    url: "/revenue",
-    icon: CreditCard,
-    description: "Financial insights",
-  },
-  {
-    title: "Settings",
-    url: "#/settings",
-    icon: Settings,
-    description: "System configuration",
-  },
+  // {
+  //   title: "Revenue",
+  //   url: "/revenue",
+  //   icon: CreditCard,
+  //   description: "Financial insights",
+  // },
+  // {
+  //   title: "Settings",
+  //   url: "#/settings",
+  //   icon: Settings,
+  //   description: "System configuration",
+  // },
 ];
 
 export function AppSidebar() {
@@ -124,7 +125,10 @@ export function AppSidebar() {
                     asChild
                     className="group h-12 hover:bg-primary/10 hover:text-slate-900 transition-all duration-200 rounded-lg mx-1"
                   >
-                    <a href={item.url} className="flex items-center gap-3 px-3">
+                    <Link
+                      href={item.url}
+                      className="flex items-center gap-3 px-3"
+                    >
                       <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-teal-100 group-hover:text-teal-600 transition-colors">
                         <item.icon className="size-4" />
                       </div>
@@ -136,7 +140,7 @@ export function AppSidebar() {
                           {item.description}
                         </div>
                       </div>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

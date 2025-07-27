@@ -66,7 +66,7 @@ export function AuthForm({
       } = await signup(data);
 
       if (signupError) {
-        console.log("Signup error:", signupError);
+        // console.log("Signup error:", signupError);
         toast.error(signupError);
 
         // Handle validation errors
@@ -79,7 +79,7 @@ export function AuthForm({
         return;
       }
 
-      console.log("Signup data:", signupData);
+      // console.log("Signup data:", signupData);
       toast.success("Account created successfully!");
       setLoading(false);
       router.push("/onboarding");
@@ -107,7 +107,7 @@ export function AuthForm({
         // Store auth data in Zustand store
         setAuth(loginData.data);
         toast.success(loginData.message || "Logged in successfully!");
-        console.log("Login data:", loginData);
+        // console.log("Login data:", loginData);
         router.push("/");
       }
 
@@ -157,12 +157,12 @@ export function AuthForm({
       return;
     }
 
-    console.log("Google login response:", responseData);
+    // console.log("Google login response:", responseData);
 
     if (responseData.token) {
       // TODO: Integrate with Zustand store instead of localStorage
       localStorage.setItem("auth_token", responseData.token);
-      console.log("Google User:", responseData);
+      // console.log("Google User:", responseData);
       toast.success("Successfully logged in with Google!");
     } else {
       console.error("Google login failed:", responseData);

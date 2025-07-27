@@ -82,8 +82,6 @@ const FlightScheduleTabView = () => {
     enabled: !!token && !!operator?.id,
   });
 
-  console.log("Flights: %j", flights?.data);
-
   return (
     <div>
       <div className="flex items-center justify-between">

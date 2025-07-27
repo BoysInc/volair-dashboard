@@ -1,6 +1,6 @@
 "use server";
 
-import { EditFlightFormData, GetOperatorFlightsResponse, FlightWidgets } from "@/lib/types/flight"
+import { EditFlightFormData, GetOperatorFlightsResponse, FlightWidgets, OperatorFlight } from "@/lib/types/flight"
 import { tryCatch } from "@/lib/utils"
 
 
@@ -34,6 +34,34 @@ export const getOperatorFlights = async (operatorId: string, token: string | nul
 
     return { data: flights.data, error: null };
 };
+
+export const getFlightById = async (flightId: string, token: string | null, operatorId: string): Promise<{ data: OperatorFlight | null, error: string | null }> => {
+    const { data, error } = await tryCatch(
+        fetch(`${process.env.BACKEND_BASE_API}/operators/${operatorId}/flights/${flightId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
+        })
+    )
+
+    if (error !== null) {
+        return { data: null, error: error.message };
+    }
+
+    const { data: flight, error: flightError } = await tryCatch(data.json())
+
+    if (!data.ok) {
+        return { data: null, error: "Error fetching flight: " + flight.message };
+    }
+
+    if (flightError) {
+        return { data: null, error: flightError.message };
+    }
+
+    return { data: flight.data, error: null };
+}
 
 export const updateFlight = async (flightId: string, flight: EditFlightFormData, token: string | null, operatorId: string): Promise<{ data: GetOperatorFlightsResponse | null, error: string | null }> => {
     const { data, error } = await tryCatch(

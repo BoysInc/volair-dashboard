@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, MapPin, Plus, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,77 +22,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import AircraftTabView from "@/app/(home)/component/AircraftTabView";
 import StatCards from "@/app/(home)/component/StatCards";
-import { useQuery } from "@tanstack/react-query";
-import { getOperatorAircrafts } from "@/lib/server/aircraft/aircraft";
 import FlightScheduleTabView from "@/app/(home)/component/flight-schedule-tab-view";
-
-// Mock data based on the database schema
-const mockStats = {
-  totalAircraft: 12,
-  activeFlights: 8,
-  monthlyRevenue: 2450000,
-  totalBookings: 156,
-  fleetUtilization: 78,
-  avgRating: 4.8,
-};
-
-const mockAircraft = [
-  {
-    id: "1",
-    model_name: "Citation CJ3+",
-    manufacturer: "Cessna",
-    registration_number: "5N-ABC",
-    seating_capacity: 8,
-    status: 1, // Active
-    wifi_available: true,
-    image_url: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: "2",
-    model_name: "King Air 350",
-    manufacturer: "Beechcraft",
-    registration_number: "5N-DEF",
-    seating_capacity: 11,
-    status: 1,
-    wifi_available: true,
-    image_url: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: "3",
-    model_name: "Falcon 7X",
-    manufacturer: "Dassault",
-    registration_number: "5N-GHI",
-    seating_capacity: 14,
-    status: 2, // Maintenance
-    wifi_available: true,
-    image_url: "/placeholder.svg?height=200&width=300",
-  },
-];
-
-const mockFlights = [
-  {
-    id: "1",
-    aircraft: "Citation CJ3+ (5N-ABC)",
-    departure: "Lagos (LOS)",
-    arrival: "Abuja (ABV)",
-    departure_time: "2024-06-29T08:00:00",
-    arrival_time: "2024-06-29T09:30:00",
-    status: 1, // Scheduled
-    price_usd: 15000,
-    bookings: 6,
-  },
-  {
-    id: "2",
-    aircraft: "King Air 350 (5N-DEF)",
-    departure: "Abuja (ABV)",
-    arrival: "Port Harcourt (PHC)",
-    departure_time: "2024-06-29T14:00:00",
-    arrival_time: "2024-06-29T15:45:00",
-    status: 2, // In Flight
-    price_usd: 12000,
-    bookings: 8,
-  },
-];
 
 const mockBookings = [
   {
@@ -147,15 +77,6 @@ function getStatusBadge(
 
 export function DashboardOverview() {
   const { token } = useAuth(true);
-
-  const { data: aircrafts } = useQuery({
-    queryKey: ["aircrafts"],
-    queryFn: () => getOperatorAircrafts(token || ""),
-    enabled: !!token,
-  });
-
-  console.log(aircrafts);
-  console.log(token);
 
   return (
     <div className="space-y-6">

@@ -31,7 +31,7 @@ import {
   addAircraftSchema,
   EditAircraftFormData,
 } from "@/lib/validations/aircraft";
-import { AIRCRAFT_MANUFACTURERS, Aircraft } from "@/lib/types/aircraft";
+import { AIRCRAFT_MANUFACTURERS } from "@/lib/types/aircraft";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Plane, Wifi, WifiOff, Edit, Save, X } from "lucide-react";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
@@ -179,9 +179,6 @@ export function EditAircraftModal() {
       });
       return;
     }
-
-    console.log("Dirty fields:", dirtyFields);
-    console.log("Update payload:", updatePayload);
 
     updateAircraftMutation.mutate(updatePayload);
   };

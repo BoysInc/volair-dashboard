@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,19 +28,32 @@ export function AircraftFlightsConflictModal({
   onClose,
 }: AircraftFlightsConflictModalProps) {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure this only runs on the client side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleFlightClick = (flightId: string) => {
+    if (!isMounted) return;
     router.push(`/flights?flightId=${flightId}`);
     onClose();
   };
 
   const handleGoToFlights = () => {
-    if (conflictingFlights.length > 0) {
+    if (!isMounted) return;
+    if (conflictingFlights && conflictingFlights.length > 0) {
       const flightId = conflictingFlights[0];
       router.push(`/flights?flightId=${flightId}`);
       onClose();
     }
   };
+
+  // Don't render anything until mounted (prevents hydration mismatch)
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -47,15 +61,15 @@ export function AircraftFlightsConflictModal({
         <AlertDialogHeader>
           <AlertDialogTitle>Cannot Delete Aircraft</AlertDialogTitle>
           <AlertDialogDescription className="space-y-3">
-            <p>
+            <span className="text-sm">
               This aircraft cannot be deleted because it is assigned to active
               flights. You need to either update the aircraft assignment or
               delete the flights first.
-            </p>
+            </span>
             <div>
               <p className="font-medium mb-2">Conflicting flights:</p>
               <ul className="list-disc list-inside space-y-1">
-                {conflictingFlights.map((flightId) => (
+                {conflictingFlights?.map((flightId) => (
                   <li key={flightId} className="text-sm font-mono">
                     <button
                       onClick={() => handleFlightClick(flightId)}
@@ -64,7 +78,7 @@ export function AircraftFlightsConflictModal({
                       {flightId}
                     </button>
                   </li>
-                ))}
+                )) || []}
               </ul>
             </div>
           </AlertDialogDescription>

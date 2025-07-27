@@ -16,6 +16,7 @@ import {
   Activity,
   Repeat,
   Timer,
+  XCircle,
 } from "lucide-react";
 import {
   FlightFormData,
@@ -28,6 +29,7 @@ import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
+import { deleteFlight } from "@/lib/server/flights/flights";
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +50,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UpdateFlightModalProps {
   flight: OperatorFlight;
@@ -64,6 +76,8 @@ export function UpdateFlightModal({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formattedPrice, setFormattedPrice] = useState<string>("");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Custom handler to close the modal and remove flightId from URL
   const handleCloseModal = (isOpen: boolean) => {
@@ -179,6 +193,39 @@ export function UpdateFlightModal({
 
   const queryClient = useQueryClient();
   const operator = useAuthStore((state) => state.operator);
+
+  // Cancel flight mutation (delete flight)
+  const cancelFlightMutation = useMutation({
+    mutationFn: async () => {
+      if (!flight?.id || !operator?.id || !token) {
+        throw new Error("Missing required data for flight deletion");
+      }
+
+      const { data, error } = await deleteFlight(flight.id, token, operator.id);
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      return data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["flights"] });
+      await queryClient.invalidateQueries({ queryKey: ["flightWidgets"] });
+      setIsCancelling(false);
+      setShowCancelConfirm(false);
+      handleCloseModal(false);
+      toast.success("Flight cancelled and deleted successfully!");
+    },
+    onError: (error: any) => {
+      setIsCancelling(false);
+      console.error("Failed to cancel flight:", error);
+      toast.error(
+        error.message || "Failed to cancel flight. Please try again."
+      );
+    },
+  });
+
   const mutation = useMutation({
     mutationFn: async (data: FlightFormData) => {
       const apiData = {
@@ -260,6 +307,15 @@ export function UpdateFlightModal({
 
   const handleCancel = () => {
     handleCloseModal(false);
+  };
+
+  const handleCancelFlight = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancelFlight = () => {
+    setIsCancelling(true);
+    cancelFlightMutation.mutate();
   };
 
   return (
@@ -489,8 +545,8 @@ export function UpdateFlightModal({
                     value={field.value}
                     onChange={(e) => field.onChange(e.target.value)}
                   >
-                    <option value={"Active"}>Active</option>
-                    <option value={"Inactive"}>Inactive</option>
+                    <option value={"Active"}>Bookable</option>
+                    <option value={"Inactive"}>Cancelled</option>
                   </select>
                 )}
               />
@@ -564,24 +620,105 @@ export function UpdateFlightModal({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-between pt-4 border-t">
+            {/* Cancel Flight Button - Left side */}
             <Button
               type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isSubmitting}
+              variant="destructive"
+              onClick={handleCancelFlight}
+              disabled={isSubmitting || isCancelling}
+              className="gap-2"
             >
-              Cancel
+              <XCircle className="h-4 w-4" />
+              Delete Flight
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Update Flight
-            </Button>
+
+            {/* Form Actions - Right side */}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSubmitting || isCancelling}
+              >
+                Close
+              </Button>
+              <Button type="submit" disabled={isSubmitting || isCancelling}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Update Flight
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
+
+      {/* Cancel Flight Confirmation Dialog */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Cancel Flight?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="text-sm">
+                Are you sure you want to cancel and delete this flight? This
+                action cannot be undone and will permanently remove the flight
+                from the system.
+              </span>
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <div className="text-sm">
+                  <strong>Flight Details:</strong>
+                  <ul className="mt-1 list-disc list-inside space-y-1">
+                    <li>
+                      Route: {flight?.departure_airport?.name} →{" "}
+                      {flight?.arrival_airport?.name}
+                    </li>
+                    <li>
+                      Date:{" "}
+                      {flight?.departure_date
+                        ? format(new Date(flight.departure_date), "PPP")
+                        : "Not set"}
+                    </li>
+                    <li>Aircraft: {flight?.aircraft?.model_name}</li>
+                  </ul>
+                </div>
+              </div>
+              <span className="text-sm font-medium text-red-600">
+                This will permanently delete the flight and notify any
+                passengers of the cancellation.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isCancelling}
+              onClick={() => setShowCancelConfirm(false)}
+            >
+              Keep Flight
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancelFlight}
+              disabled={isCancelling}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancel Flight
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

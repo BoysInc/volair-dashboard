@@ -306,7 +306,7 @@ export function AddAircraftModal() {
                   setValue("media_ids", mediaIds as string[])
                 }
                 onUploadComplete={(files) => {
-                  console.log("Upload complete:", files);
+                  // console.log("Upload complete:", files);
                   setValue(
                     "media_ids",
                     files.map((file) => file.id)

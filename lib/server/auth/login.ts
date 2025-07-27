@@ -47,7 +47,7 @@ export const login = async ({ email, password }: SignInFormData): Promise<AuthRe
     const { data: userData, error: userError } = await tryCatch(data.json())
 
     if (userError) {
-        console.log(userError)
+        // console.log(userError)
         return { error: userError.message };
     }
 
@@ -60,7 +60,7 @@ export const signup = async ({ email, password, name, phone, confirmPassword }: 
 
     const resBody = JSON.stringify({ email, password, "first_name": name.split(" ")[0], "last_name": name.split(" ")[1], phone, "password_confirmation": confirmPassword })
 
-    console.log(resBody)
+    // console.log(resBody)
 
     const { data, error } = await tryCatch(
         fetch(`${process.env.BACKEND_BASE_API}/users`, {
@@ -73,7 +73,7 @@ export const signup = async ({ email, password, name, phone, confirmPassword }: 
     )
 
     if (error !== null) {
-        console.log(error)
+        // console.log(error)
         return { error: error.message };
     }
 
@@ -94,11 +94,11 @@ export const signup = async ({ email, password, name, phone, confirmPassword }: 
     const { data: userData, error: userError } = await tryCatch(data.json())
 
     if (userError) {
-        console.log(userError)
+        // console.log(userError)
         return { error: userError.message };
     }
 
-    console.log(userData)
+    // console.log(userData)
 
     return { data: userData };
 };
