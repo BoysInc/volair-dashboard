@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -22,10 +23,9 @@ import {
   OperatorFlight,
 } from "@/lib/types/flight";
 import { formatNumberWithCommas, cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -61,8 +61,19 @@ export function UpdateFlightModal({
   onOpenChange,
 }: UpdateFlightModalProps) {
   const { token } = useAuth(true);
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formattedPrice, setFormattedPrice] = useState<string>("");
+
+  // Custom handler to close the modal and remove flightId from URL
+  const handleCloseModal = (isOpen: boolean) => {
+    if (!isOpen) {
+      // Remove flightId from URL when modal is closed
+      router.push(window.location.pathname);
+    }
+    // Call the original onOpenChange function
+    onOpenChange(isOpen);
+  };
 
   const {
     register,
@@ -111,8 +122,6 @@ export function UpdateFlightModal({
     }
   }, [flight, reset]);
 
-  const selectedAircraftId = watch("aircraft_id");
-  const estimatedDuration = watch("estimated_duration");
   const price_usd = watch("price_usd");
 
   // Fetch aircraft data
@@ -139,15 +148,17 @@ export function UpdateFlightModal({
     enabled: !!token,
   });
 
+  const { aircraft_id, estimated_duration } = watch();
+
   // Calculate price based on aircraft price_per_hour_usd and estimated duration
   useEffect(() => {
-    if (selectedAircraftId && estimatedDuration && aircraftData?.data) {
+    if (aircraft_id && estimated_duration && aircraftData?.data) {
       const selectedAircraft = aircraftData.data.find(
-        (aircraft: any) => aircraft.id === selectedAircraftId
+        (aircraft: any) => aircraft.id === aircraft_id
       );
 
       if (selectedAircraft && selectedAircraft.price_per_hour_usd) {
-        const duration = parseFloat(estimatedDuration);
+        const duration = parseFloat(estimated_duration);
         if (!isNaN(duration)) {
           const calculatedPrice =
             selectedAircraft.price_per_hour_usd * duration;
@@ -155,7 +166,7 @@ export function UpdateFlightModal({
         }
       }
     }
-  }, [selectedAircraftId, estimatedDuration, aircraftData, setValue]);
+  }, [aircraft_id, estimated_duration, setValue, aircraftData]);
 
   // Format price with commas for display
   useEffect(() => {
@@ -170,16 +181,14 @@ export function UpdateFlightModal({
   const operator = useAuthStore((state) => state.operator);
   const mutation = useMutation({
     mutationFn: async (data: FlightFormData) => {
-      // Remove departure_time from API data since it's now combined with departure_date
-      const { departure_time, ...rest } = data;
-
       const apiData = {
-        aircraft_id: rest.aircraft_id,
-        departure_date: rest.departure_date,
-        estimated_duration: rest.estimated_duration,
-        status: rest.status,
-        price_usd: Number(rest.price_usd), // Ensure price_usd is a number
-        is_recurring: rest.is_recurring ? "true" : "false",
+        aircraft_id: data.aircraft.id,
+        departure_date: data.departure_date,
+        estimated_duration: data.estimated_duration,
+        status: data.status,
+        price_usd: Number(data.price_usd), // Ensure price_usd is a number
+        is_recurring: data.is_recurring ? "true" : "false",
+        is_empty_leg: data.is_empty_leg ? "true" : "false",
       };
 
       const url = `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/${flight?.id}`;
@@ -208,7 +217,7 @@ export function UpdateFlightModal({
       await queryClient.invalidateQueries({ queryKey: ["flights"] });
       await queryClient.invalidateQueries({ queryKey: ["flightWidgets"] });
       setIsSubmitting(false);
-      onOpenChange(false);
+      handleCloseModal(false);
       toast.success("Flight updated successfully!");
     },
     onError: (error: any) => {
@@ -250,11 +259,11 @@ export function UpdateFlightModal({
   };
 
   const handleCancel = () => {
-    onOpenChange(false);
+    handleCloseModal(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleCloseModal}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Update Flight</DialogTitle>
@@ -268,7 +277,7 @@ export function UpdateFlightModal({
             {/* Aircraft Selection */}
             <div className="md:col-span-2">
               <Controller
-                name="aircraft_id"
+                name="aircraft"
                 control={control}
                 rules={{ required: "Aircraft is required" }}
                 render={({ field }) => (
@@ -424,7 +433,7 @@ export function UpdateFlightModal({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              {/* Hidden input for the actual numeric value */}
+              {/* Hidden input for form validation */}
               <input
                 type="hidden"
                 {...register("price_usd", {
@@ -432,15 +441,23 @@ export function UpdateFlightModal({
                   min: { value: 1, message: "Price must be greater than 0" },
                   valueAsNumber: true,
                 })}
-                value={price_usd}
               />
-              {/* Display input for formatted value */}
+              {/* Editable input for price */}
               <Input
                 id="price_usd_display"
                 placeholder="Automatically calculated"
                 value={formattedPrice}
+                onChange={(e) => {
+                  // Remove commas and non-numeric characters
+                  const numericValue = e.target.value.replace(/[^0-9.]/g, "");
+                  // Parse as number
+                  const parsedValue = parseFloat(numericValue);
+                  // Update the form value
+                  setValue("price_usd", isNaN(parsedValue) ? 0 : parsedValue);
+                  // Update the formatted display
+                  setFormattedPrice(numericValue);
+                }}
                 className={cn("mt-2", errors.price_usd ? "border-red-500" : "")}
-                readOnly
               />
               {errors.price_usd && (
                 <p className="text-sm text-red-600">
@@ -483,7 +500,7 @@ export function UpdateFlightModal({
             </div>
 
             {/* Is Recurring */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label
                 htmlFor="is_recurring"
                 className="text-sm font-medium flex items-center gap-2"
@@ -513,6 +530,34 @@ export function UpdateFlightModal({
               {errors.is_recurring && (
                 <p className="text-sm text-red-600">
                   {errors.is_recurring.message}
+                </p>
+              )}
+            </div>
+
+            {/* Is empty leg */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="is_empty_leg"
+                className="text-sm font-medium flex items-center gap-2"
+              >
+                Is this an empty leg flight?
+              </Label>
+              <div className="flex items-center space-x-2 mt-2">
+                <Controller
+                  name="is_empty_leg"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="is_empty_leg"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+              {errors.is_empty_leg && (
+                <p className="text-sm text-red-600">
+                  {errors.is_empty_leg.message}
                 </p>
               )}
             </div>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { FlightsTable } from "@/components/flights/flights-table";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -48,10 +48,64 @@ export default function FlightsPage() {
   const [editingFlight, setEditingFlight] = useState<OperatorFlight | null>(
     null
   );
+  const searchParams = useSearchParams();
+  // Ref to track if we're currently editing a flight to avoid dependency issues
+  const editingFlightIdRef = useRef<string | null>(null);
 
   const { token } = useAuth(true);
   const operator = useAuthStore((state) => state.operator);
   const queryClient = useQueryClient();
+
+  // Function to fetch a single flight by ID
+  const fetchFlightById = async (flightId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/operators/${operator?.id}/flights/${flightId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        toast.error("Failed to fetch flight");
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching flight:", error);
+      toast.error("Failed to load flight details");
+      return null;
+    }
+  };
+
+  // Update the ref when editingFlight changes
+  useEffect(() => {
+    editingFlightIdRef.current = editingFlight?.id || null;
+  }, [editingFlight]);
+
+  // Check for flightId in URL and open edit modal if present
+  useEffect(() => {
+    const flightId = searchParams.get("flightId");
+
+    if (flightId && token && operator) {
+      // Only fetch if we're not already editing this flight
+      if (editingFlightIdRef.current !== flightId) {
+        fetchFlightById(flightId).then((data) => {
+          if (data) {
+            setEditingFlight(data.data);
+          }
+        });
+      }
+    } else if (!flightId && editingFlightIdRef.current) {
+      // Close the modal if flightId is removed from URL
+      setEditingFlight(null);
+    }
+  }, [searchParams, token, operator]);
 
   // Delete flight mutation
   const deleteMutation = useMutation({
@@ -99,7 +153,7 @@ export default function FlightsPage() {
       }
       return data;
     },
-    enabled: !!token,
+    enabled: !!token && !!operator,
   });
 
   const { data: flights, isLoading } = useQuery({
@@ -115,7 +169,7 @@ export default function FlightsPage() {
       }
       return data;
     },
-    enabled: !!token,
+    enabled: !!token && !!operator,
   });
 
   return (

@@ -34,6 +34,7 @@ export interface Flight {
     estimated_duration: string; // Format: "2h 30m"
     status: string;
     price_usd: number;
+    is_empty_leg: boolean;
     is_recurring: boolean;
 }
 
@@ -67,6 +68,8 @@ export interface FlightFormData {
     price_usd: number;
     status: string;
     is_recurring: boolean;
+    is_empty_leg: boolean;
+    aircraft: Aircraft;
 }
 
 export enum FlightStatus {

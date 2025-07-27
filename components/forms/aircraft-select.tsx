@@ -8,12 +8,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { cn, formatNumberWithCommas } from "@/lib/utils";
 import {
   Aircraft,
-  AircraftStatus,
-  AIRCRAFT_STATUS_LABELS,
 } from "@/lib/types/flight";
 import {useAuth} from "@/hooks/use-auth";
 import {useQuery} from "@tanstack/react-query";
@@ -21,7 +18,7 @@ import React from "react";
 
 interface AircraftSelectProps {
   label: string;
-  value?: string;
+  value?: string|Aircraft;
   onChange: (value: string) => void;
   error?: string;
   required?: boolean;
@@ -61,28 +58,13 @@ export function AircraftSelect({
     enabled: !!token,
   });
 
-  const getStatusColor = (status: AircraftStatus) => {
-    switch (status) {
-      case AircraftStatus.AVAILABLE:
-        return "default";
-      case AircraftStatus.IN_FLIGHT:
-        return "secondary";
-      case AircraftStatus.MAINTENANCE:
-        return "destructive";
-      case AircraftStatus.OUT_OF_SERVICE:
-        return "destructive";
-      default:
-        return "default";
-    }
-  };
-
   return (
     <div className={cn("space-y-2", className)}>
       <Label htmlFor={fieldId} className="text-sm font-medium">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      <Select value={value || ""} onValueChange={onChange} disabled={disabled || isLoading}>
+      <Select value={typeof value === 'string' ? value : value?.id || ""} onValueChange={onChange} disabled={disabled || isLoading}>
         <SelectTrigger
           className={cn('mt-2', error && "border-red-500 focus:ring-red-500")}
         >
