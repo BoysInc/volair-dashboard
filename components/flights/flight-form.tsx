@@ -120,6 +120,7 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
         is_recurring: data.is_recurring ? "true" : "false",
         departure_date: data.departure_date,
         is_empty_leg: data.is_empty_leg ? "true" : "false",
+        operator_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
       const url = isEditing 

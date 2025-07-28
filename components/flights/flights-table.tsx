@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import {formatCurrency} from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,10 +40,10 @@ import {
   MapPin,
 } from "lucide-react";
 import {
-  FlightStatus,
   GetOperatorFlightsResponse,
   OperatorFlight,
 } from "@/lib/types/flight";
+import {TZDate} from "@date-fns/tz";
 
 interface FlightsTableProps {
   flights: GetOperatorFlightsResponse;
@@ -51,27 +51,7 @@ interface FlightsTableProps {
   onDelete: (flightId: string) => void;
 }
 
-const getStatusColor = (status: FlightStatus): string => {
-  switch (status) {
-    case FlightStatus.SCHEDULED:
-      return "default";
-    case FlightStatus.BOARDING:
-      return "secondary";
-    case FlightStatus.DEPARTED:
-    case FlightStatus.IN_FLIGHT:
-      return "default";
-    case FlightStatus.ARRIVED:
-      return "secondary";
-    case FlightStatus.DELAYED:
-      return "destructive";
-    case FlightStatus.CANCELLED:
-      return "destructive";
-    default:
-      return "default";
-  }
-};
-
-export function FlightsTable({ flights, onEdit, onDelete }: FlightsTableProps) {
+export function FlightsTable({ flights, onDelete }: FlightsTableProps) {
   const [deleteFlightId, setDeleteFlightId] = useState<string | null>(null);
   const router = useRouter();
 
@@ -137,8 +117,8 @@ export function FlightsTable({ flights, onEdit, onDelete }: FlightsTableProps) {
                   <div>
                     <div className="font-semibold">
                       {flight.departure_date
-                        ? format(new Date(flight.departure_date), "MMM d, yyyy")
-                        : "N/A"}
+                          ? (flight.is_recurring ? `Every ${formatRecurringDate(flight.departure_date)}` : formatServerDate(flight.departure_date))
+                          : "N/A"}
                     </div>
                   </div>
                 </div>
@@ -223,3 +203,27 @@ export function FlightsTable({ flights, onEdit, onDelete }: FlightsTableProps) {
     </>
   );
 }
+
+const formatServerDate = (serverDate: string): string => {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const dateInUsersTimezone = new TZDate(serverDate, timezone)
+
+    return format(dateInUsersTimezone, "EEEE, MMMM d h:mm aaa");
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
+};
+
+const formatRecurringDate = (serverDate: string): string => {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const dateInUsersTimezone = new TZDate(serverDate, timezone)
+
+    return format(dateInUsersTimezone, "EEEE, h:mm aaa");
+  } catch (error) {
+    console.error("Error formatting recurring date:", error);
+    return "Invalid date";
+  }
+};
