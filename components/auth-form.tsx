@@ -30,14 +30,12 @@ const googleClientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 interface AuthFormProps {
   mode: "signin" | "signup";
   onToggleMode: () => void;
-  onGoogleSignIn: () => Promise<void>;
 }
 
 export function AuthForm({
   mode,
   onToggleMode,
 }: AuthFormProps) {
-  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
   const { setAuth, setLoading, isLoading } = useAuthStore();
 
   const isSignUp = mode === "signup";
@@ -101,9 +99,8 @@ export function AuthForm({
 
       if (loginData) {
         // Store auth data in Zustand store
-        setAuth(loginData.data);
+        setAuth({...loginData.data, operator: null});
         toast.success(loginData.message || "Logged in successfully!");
-        // console.log("Login data:", loginData);
         router.push("/");
       }
 
@@ -116,9 +113,9 @@ export function AuthForm({
     onToggleMode();
   };
 
-  const handleLogin = async (credentialResponse: any) => {
+  const handleGoogleLogin = async (credentialResponse: any) => {
     const { data: res, error: fetchError } = await tryCatch(
-      fetch("https://nelwhix.online/api/v1/auth/google/login", {
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/auth/google/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -140,13 +137,14 @@ export function AuthForm({
       return;
     }
 
-    // console.log("Google login response:", responseData);
-
-    if (responseData.token) {
-      // TODO: Integrate with Zustand store instead of localStorage
-      localStorage.setItem("auth_token", responseData.token);
-      // console.log("Google User:", responseData);
-      toast.success("Successfully logged in with Google!");
+    if (responseData) {
+      setAuth({
+        token: responseData.data.token,
+        user: responseData.data.user,
+        operator: null
+      })
+      toast.success("Logged in sucessfully!");
+      router.push("/");
     } else {
       toast.error("Google login failed");
     }
@@ -167,7 +165,7 @@ export function AuthForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <GoogleLogin
-            onSuccess={handleLogin}
+            onSuccess={handleGoogleLogin}
             onError={() => toast.error("Google login failed")}
           />
 
@@ -262,7 +260,7 @@ export function AuthForm({
               type="button"
               onClick={handleModeToggle}
               className="text-primary underline-offset-4 hover:underline"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading}
             >
               {isSignUp ? "Sign in" : "Sign up"}
             </button>

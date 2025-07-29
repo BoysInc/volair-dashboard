@@ -10,20 +10,12 @@ export default function AuthPage() {
     setMode(mode === "signin" ? "signup" : "signin");
   };
 
-  const handleGoogleSignIn = async () => {
-    // TODO: Implement Google sign-in logic here
-
-    // Simulate Google OAuth flow
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <AuthForm
           mode={mode}
           onToggleMode={handleToggleMode}
-          onGoogleSignIn={handleGoogleSignIn}
         />
       </div>
     </div>
