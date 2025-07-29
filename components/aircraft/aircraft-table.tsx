@@ -54,20 +54,20 @@ import {
   getOperatorAircrafts,
   updateAircraft,
 } from "@/lib/server/aircraft/aircraft";
-import { useAuth } from "@/hooks/use-auth";
 import { ErrorState } from "../ui/error-state";
 import { LoadingState } from "../ui/loading-state";
 import { toast } from "sonner";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
 import { DeleteAircraftConfirmationModal } from "./delete-aircraft-confirmation-modal";
 import { AircraftFlightsConflictModal } from "./aircraft-flights-conflict-modal";
+import {useAuthStore} from "@/lib/store/auth-store";
 
 interface AircraftTableProps {
   token: string;
 }
 
 export function AircraftTable({ token }: AircraftTableProps) {
-  const { openEditModal, openViewModal } = useAircraftModalStore();
+  const { openEditModal } = useAircraftModalStore();
   const queryClient = useQueryClient();
 
   // State for flights conflict modal
@@ -78,14 +78,15 @@ export function AircraftTable({ token }: AircraftTableProps) {
   // State for delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const operator = useAuthStore((state) => state.operator);
   const {
     data: aircraftData,
     isLoading: isLoadingAircraft,
     error: aircraftError,
   } = useQuery({
     queryKey: ["aircrafts"],
-    queryFn: () => getOperatorAircrafts(token),
-    enabled: !!token,
+    queryFn: () => getOperatorAircrafts(token, operator?.id!),
+    enabled: !!token && operator !== null,
   });
 
   const { data: aircraftDataMemo, error: aircraftErrorMemo } = useMemo(() => {
@@ -110,7 +111,7 @@ export function AircraftTable({ token }: AircraftTableProps) {
   ) => {
     const { data, error } = await updateAircraft(token, aircraftId, {
       status: newStatus,
-    });
+    }, operator?.id!);
     if (error !== null) {
       console.error("Error updating aircraft status:", error);
       toast.error("Error updating aircraft status");
@@ -118,6 +119,7 @@ export function AircraftTable({ token }: AircraftTableProps) {
     }
     if (data !== null) {
       toast.success("Aircraft status updated");
+      queryClient.refetchQueries({ queryKey: ["aircrafts"]});
       return;
     }
   };
@@ -131,7 +133,7 @@ export function AircraftTable({ token }: AircraftTableProps) {
     if (!aircraftToDelete) return;
 
     setIsDeleting(true);
-    const { data, error } = await deleteAircraft(token, aircraftToDelete);
+    const { error } = await deleteAircraft(token, aircraftToDelete, operator?.id!);
 
     if (error !== null) {
       if (

@@ -34,6 +34,7 @@ import { AIRCRAFT_MANUFACTURERS } from "@/lib/types/aircraft";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Plane, Wifi, WifiOff } from "lucide-react";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
+import {useAuthStore} from "@/lib/store/auth-store";
 
 export function AddAircraftModal() {
   const { token } = useAuth();
@@ -44,7 +45,6 @@ export function AddAircraftModal() {
   const {
     register,
     handleSubmit,
-    control,
     watch,
     setValue,
     reset,
@@ -66,9 +66,9 @@ export function AddAircraftModal() {
   });
 
   const wifiAvailable = watch("wifi_available");
-
+  const operator = useAuthStore((state) => state.operator);
   const createAircraftMutation = useMutation({
-    mutationFn: (data: AddAircraftFormData) => createAircraft(token, data),
+    mutationFn: (data: AddAircraftFormData) => createAircraft(token, data, operator?.id!),
     onSuccess: (result) => {
       if (result.error) {
         toast.error(result.error);
@@ -79,7 +79,7 @@ export function AddAircraftModal() {
         closeModal();
       }
     },
-    onError: (error) => {
+    onError: () => {
       toast.error("Failed to add aircraft. Please try again.");
     },
   });

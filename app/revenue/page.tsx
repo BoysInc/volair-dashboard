@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 // Import the separated components
 import RevenueStatsCards from "./components/RevenueStatsCards";
@@ -21,12 +22,12 @@ export default function RevenuePage() {
 
   const handleExport = () => {
     // TODO: Implement export functionality
-    console.log("Exporting revenue data...");
+    toast.info("Exporting revenue data...");
   };
 
   const handleRefresh = () => {
     // TODO: Implement refresh functionality
-    console.log("Refreshing revenue data...");
+    toast.info("Refreshing revenue data...");
   };
 
   return (

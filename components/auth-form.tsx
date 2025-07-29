@@ -16,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   signInSchema,
   signUpSchema,
-  SignInFormData,
   SignUpFormData,
 } from "@/lib/validations/auth";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
@@ -37,7 +36,6 @@ interface AuthFormProps {
 export function AuthForm({
   mode,
   onToggleMode,
-  onGoogleSignIn,
 }: AuthFormProps) {
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
   const { setAuth, setLoading, isLoading } = useAuthStore();
@@ -60,7 +58,6 @@ export function AuthForm({
 
     if (isSignUp) {
       const {
-        data: signupData,
         error: signupError,
         validationErrors,
       } = await signup(data);
@@ -71,8 +68,8 @@ export function AuthForm({
 
         // Handle validation errors
         if (validationErrors) {
-          // You can display field-specific errors here if needed
-          console.log("Validation errors:", validationErrors);
+          // Display a generic message for validation errors
+          toast.error("Please check your input and try again");
         }
 
         setLoading(false);
@@ -91,12 +88,11 @@ export function AuthForm({
       } = await login(data);
 
       if (loginError) {
-        console.error("Login error:", loginError);
         toast.error(loginError);
 
         // Handle validation errors
         if (validationErrors) {
-          console.log("Validation errors:", validationErrors);
+          toast.error("Please check your input and try again");
         }
 
         setLoading(false);
@@ -112,17 +108,6 @@ export function AuthForm({
       }
 
       setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      await onGoogleSignIn();
-    } catch (error) {
-      console.error("Google sign in error:", error);
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -144,7 +129,6 @@ export function AuthForm({
     );
 
     if (fetchError) {
-      console.error("Google login fetch error:", fetchError);
       toast.error("Failed to connect to Google authentication");
       return;
     }
@@ -152,7 +136,6 @@ export function AuthForm({
     const { data: responseData, error: jsonError } = await tryCatch(res.json());
 
     if (jsonError) {
-      console.error("Error parsing Google login response:", jsonError);
       toast.error("Invalid response from Google authentication");
       return;
     }
@@ -165,7 +148,6 @@ export function AuthForm({
       // console.log("Google User:", responseData);
       toast.success("Successfully logged in with Google!");
     } else {
-      console.error("Google login failed:", responseData);
       toast.error("Google login failed");
     }
   };
@@ -186,7 +168,7 @@ export function AuthForm({
         <CardContent className="space-y-4">
           <GoogleLogin
             onSuccess={handleLogin}
-            onError={() => console.log("Login Failed")}
+            onError={() => toast.error("Google login failed")}
           />
 
           <div className="relative">

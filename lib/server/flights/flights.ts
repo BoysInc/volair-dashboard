@@ -30,8 +30,6 @@ export const getOperatorFlights = async (operatorId: string, token: string | nul
         return { data: null, error: flightsError.message };
     }
 
-    console.log("Flights: %j", flights.data);
-
     return { data: flights.data, error: null };
 };
 

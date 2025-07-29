@@ -11,6 +11,7 @@ import { Edit, Eye, Plus, ArrowRight } from "lucide-react";
 import React, { useMemo } from "react";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
 import Link from "next/link";
+import {useAuthStore} from "@/lib/store/auth-store";
 
 type AircraftTabViewProps = {
   token: string;
@@ -18,10 +19,11 @@ type AircraftTabViewProps = {
 
 const AircraftTabView = ({ token }: AircraftTabViewProps) => {
   const { openModal, openEditModal, openViewModal } = useAircraftModalStore();
+  const operator = useAuthStore((state) => state.operator);
   const { data: aircrafts, isLoading: isLoadingAircrafts } = useQuery({
     queryKey: ["aircrafts"],
-    queryFn: () => getOperatorAircrafts(token),
-    enabled: !!token,
+    queryFn: () => getOperatorAircrafts(token, operator?.id!),
+    enabled: !!token && operator !== null,
   });
 
   const { data: aircraftsData, error: aircraftsError } = useMemo(() => {

@@ -9,19 +9,19 @@ import React, { useMemo } from "react";
 import { Settings, Wifi } from "lucide-react";
 
 const AircraftWidgets = () => {
-  const { token } = useAuth();
-
+  const { token, operator } = useAuth();
   const {
     data: aircraftWidgets,
     isLoading: isLoadingAircraftWidgets,
     error: aircraftWidgetsError,
   } = useQuery({
     queryKey: ["aircraftWidgets"],
-    queryFn: () => getAircraftWidgets(token),
-    enabled: !!token,
+    queryFn: () => getAircraftWidgets(token, operator?.id!),
+    enabled: !!token && operator !== null,
   });
 
-  const { data: aircraftWidgetsData, error: aircraftWidgetsDataError } =
+
+  const { data: aircraftWidgetsData } =
     useMemo(() => {
       const { data, error } = aircraftWidgets || { data: null, error: null };
       return {

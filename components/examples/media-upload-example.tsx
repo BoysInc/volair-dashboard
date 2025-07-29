@@ -29,8 +29,6 @@ export function SingleFileUploadExample() {
     register,
     handleSubmit,
     control,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -42,7 +40,6 @@ export function SingleFileUploadExample() {
 
   const onSubmit = (data: ProfileFormData) => {
     toast.success("Profile updated successfully!");
-    console.log("Profile data:", data);
   };
 
   return (
@@ -102,8 +99,6 @@ export function MultipleFileUploadExample() {
     register,
     handleSubmit,
     control,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<GalleryFormData>({
     resolver: zodResolver(gallerySchema),
@@ -115,7 +110,6 @@ export function MultipleFileUploadExample() {
 
   const onSubmit = (data: GalleryFormData) => {
     toast.success("Gallery created successfully!");
-    console.log("Gallery data:", data);
   };
 
   return (
@@ -180,8 +174,6 @@ export function MixedMediaUploadExample() {
     register,
     handleSubmit,
     control,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<DocumentFormData>({
     resolver: zodResolver(documentSchema),
@@ -193,7 +185,6 @@ export function MixedMediaUploadExample() {
 
   const onSubmit = (data: DocumentFormData) => {
     toast.success("Documents uploaded successfully!");
-    console.log("Document data:", data);
   };
 
   return (
