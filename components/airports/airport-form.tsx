@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useRef} from "react";
+import {useState, useEffect, useRef, useCallback} from "react";
 import {useForm} from "react-hook-form";
 import {Button} from "@/components/ui/button";
 import {
@@ -13,7 +13,6 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import {Input} from "@/components/ui/input";
-import {Airport} from "@/lib/types/flight";
 import Script from "next/script";
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useAuth} from "@/hooks/use-auth";
@@ -33,13 +32,20 @@ interface AirportFormData {
     longitude: number;
 }
 
+interface AirportPrediction {
+    description: string;
+    place_id: string;
+}
+
 export function AirportForm({onCancel}: AirportFormProps) {
     const { token } = useAuth(true);
     const [scriptLoaded, setScriptLoaded] = useState(false);
     const autocompleteInputRef = useRef<HTMLInputElement>(null);
-    // @ts-ignore
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [predictions, setPredictions] = useState<AirportPrediction[]>([]);
+    const [isFocused, setIsFocused] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [searchInput, setSearchInput] = useState("");
 
     const form = useForm<AirportFormData>({
         defaultValues: {
@@ -53,47 +59,71 @@ export function AirportForm({onCancel}: AirportFormProps) {
             longitude: 0,
         },
     });
-
-
-    // Initialize Google Places Autocomplete when the script is loaded
-    useEffect(() => {
-        // Check if Google Maps is available either through scriptLoaded state or directly in window
-        if ((scriptLoaded || window.google?.maps?.places) && autocompleteInputRef.current) {
-            // @ts-ignore
-            const options: google.maps.places.AutocompleteOptions = {
+    
+    // Function to fetch predictions from Google Places API
+    const fetchPredictions = useCallback((input: string) => {
+        if (!input || !window.google?.maps?.places) return;
+        
+        setIsLoading(true);
+        
+        // Create a new AutocompleteService instance
+        const service = new window.google.maps.places.AutocompleteService();
+        
+        // Request predictions
+        service.getPlacePredictions(
+            {
+                input,
                 types: ['airport'],
-                fields: ['name', 'geometry', 'address_components', 'formatted_address'],
-                // Prioritize airport locations in search results
-                strictBounds: false,
-                // Add keyword bias for airport-related terms
-                keyword: 'airport terminal'
-            };
-
-            // Clean up any existing autocomplete instance
-            if (autocompleteRef.current) {
-                // @ts-ignore
-                google.maps.event.clearInstanceListeners(autocompleteRef.current);
-                autocompleteRef.current = null;
+                componentRestrictions: { country: [] }, // No country restriction
+            },
+            (predictions: any, status: any) => {
+                setIsLoading(false);
+                
+                if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
+                    setPredictions([]);
+                    return;
+                }
+                
+                // Map predictions to our interface
+                const mappedPredictions = predictions.map((prediction: any) => ({
+                    description: prediction.description,
+                    place_id: prediction.place_id,
+                }));
+                
+                setPredictions(mappedPredictions);
             }
-
-            autocompleteRef.current = new window.google.maps.places.Autocomplete(
-                autocompleteInputRef.current,
-                options
-            );
-
-            // Add listener for place selection
-            autocompleteRef.current.addListener('place_changed', () => {
-                const place = autocompleteRef.current?.getPlace();
-
+        );
+    }, []);
+    
+    // Function to handle selection of a prediction
+    const handleSelectPrediction = useCallback((placeId: string) => {
+        if (!window.google?.maps?.places) return;
+        
+        // Create a PlacesService instance
+        const placesService = new window.google.maps.places.PlacesService(
+            document.createElement('div') // Dummy element for the service
+        );
+        
+        // Get place details
+        placesService.getDetails(
+            {
+                placeId: placeId,
+                fields: ['name', 'geometry', 'address_components', 'formatted_address'],
+            },
+            (place: any, status: any) => {
+                if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place) {
+                    return;
+                }
+                
                 if (place && place.geometry && place.geometry.location) {
                     // Extract data from the selected place
                     const lat = place.geometry.location.lat().toFixed(7);
                     const lng = place.geometry.location.lng().toFixed(7);
-
+                    
                     // Get city and country from address components
                     let city = '';
                     let country = '';
-
+                    
                     if (place.address_components) {
                         for (const component of place.address_components) {
                             if (component.types.includes('locality')) {
@@ -103,27 +133,43 @@ export function AirportForm({onCancel}: AirportFormProps) {
                             }
                         }
                     }
-
+                    
                     // Update form values
                     form.setValue('name', place.name || '');
                     form.setValue('city', city);
                     form.setValue('country', country);
                     form.setValue('address', place.formatted_address || '');
-                    form.setValue('latitude', lat);
-                    form.setValue('longitude', lng);
+                    form.setValue('latitude', parseFloat(lat));
+                    form.setValue('longitude', parseFloat(lng));
+                    
+                    // Clear predictions and update search input
+                    setPredictions([]);
+                    setSearchInput(place.name || '');
                 }
-            });
+            }
+        );
+    }, [form, setSearchInput, setPredictions]);
 
-            // Return cleanup function
-            return () => {
-                if (autocompleteRef.current) {
-                    // @ts-ignore
-                    google.maps.event.clearInstanceListeners(autocompleteRef.current);
-                    autocompleteRef.current = null;
-                }
-            };
+
+    // Initialize Google Maps script loading
+    useEffect(() => {
+        // We don't need to initialize the autocomplete widget anymore
+        // as we're handling predictions manually with our custom dropdown
+        // Just set a flag when the script is loaded
+        if (scriptLoaded || window.google?.maps?.places) {
+            // If the user has already entered something in the search box,
+            // fetch predictions immediately
+            if (searchInput) {
+                fetchPredictions(searchInput);
+            }
         }
-    }, [scriptLoaded, form]);
+        
+        // Return cleanup function
+        return () => {
+            // Clear any predictions when component unmounts
+            setPredictions([]);
+        };
+    }, [scriptLoaded, searchInput, fetchPredictions]);
 
     const handleSubmit = (data: AirportFormData) => {
         setIsSubmitting(true);
@@ -185,7 +231,7 @@ export function AirportForm({onCancel}: AirportFormProps) {
           <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                   {/* Airport Search with Google Maps */}
-                  <div className="mb-6">
+                  <div className="mb-6 relative">
                       <FormItem className="col-span-2">
                           <FormLabel>Search Airport</FormLabel>
                           <FormControl className={"mt-2"}>
@@ -193,12 +239,47 @@ export function AirportForm({onCancel}: AirportFormProps) {
                                   ref={autocompleteInputRef}
                                   placeholder="Search for an airport..."
                                   className="w-full"
+                                  value={searchInput}
+                                  onChange={(e) => {
+                                      const value = e.target.value;
+                                      setSearchInput(value);
+                                      fetchPredictions(value);
+                                  }}
+                                  onFocus={() => setIsFocused(true)}
+                                  onBlur={() => {
+                                      // Delay hiding predictions to allow for click events
+                                      setTimeout(() => setIsFocused(false), 200);
+                                  }}
                               />
                           </FormControl>
                           <FormDescription>
                               Search for an airport to automatically fill the form fields
                           </FormDescription>
                       </FormItem>
+                      
+                      {/* Predictions Dropdown */}
+                      {isFocused && predictions.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border border-gray-200">
+                              <ul className="py-1">
+                                  {predictions.map((prediction) => (
+                                      <li
+                                          key={prediction.place_id}
+                                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                          onClick={() => handleSelectPrediction(prediction.place_id)}
+                                      >
+                                          {prediction.description}
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                      )}
+                      
+                      {/* Loading indicator */}
+                      {isLoading && (
+                          <div className="absolute right-3 top-10">
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+                          </div>
+                      )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

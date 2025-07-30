@@ -9,16 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,33 +19,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  MapPin,
-  Globe,
-} from "lucide-react";
 import { Airport } from "@/lib/types/flight";
+import {flexRender, PaginationState} from "@tanstack/react-table";
+import {Table as ReactTable} from "@tanstack/react-table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface AirportsTableProps {
-  airports: Airport[];
-  onEdit: (airport: Airport) => void;
   onDelete: (airportId: string) => void;
+  table: ReactTable<Airport>
+  pagination: PaginationState,
+  setPagination: (pagination: PaginationState) => void,
+  meta: any,
 }
 
-// Function to determine airport type badge color
-const getAirportTypeColor = (name: string): string => {
-  return name.includes("International") ? "secondary" : "default";
-};
-
 export function AirportsTable({
-  airports,
-  onEdit,
   onDelete,
+    table,
+    pagination,
+    setPagination,
+    meta,
 }: AirportsTableProps) {
   const [deleteAirportId, setDeleteAirportId] = useState<string | null>(null);
-
   const handleDeleteConfirm = () => {
     if (deleteAirportId) {
       onDelete(deleteAirportId);
@@ -67,75 +58,79 @@ export function AirportsTable({
     <>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Airport Name</TableHead>
-            <TableHead>IATA Code</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
+          {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                    <TableHead key={header.id}>
+                      {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                      )}
+                    </TableHead>
+                ))}
+              </TableRow>
+          ))}
         </TableHeader>
         <TableBody>
-          {airports.map((airport) => (
-            <TableRow key={airport.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-semibold">{airport.name}</div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="font-mono font-semibold">{airport.iata_code}</div>
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-semibold">{airport.city}</div>
-                  <div className="text-sm text-muted-foreground">{airport.country}</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(airport)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => setDeleteAirportId(airport.id)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+          {table.getRowModel().rows.map(row => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                ))}
+              </TableRow>
           ))}
         </TableBody>
       </Table>
 
-      {airports.length === 0 && (
-        <div className="text-center py-8">
-          <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-2 text-sm font-semibold text-gray-900">
-            No airports found
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Get started by adding your first airport.
-          </p>
-        </div>
-      )}
-
+      {/*{airports.length === 0 && (*/}
+      {/*  <div className="text-center py-8">*/}
+      {/*    <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />*/}
+      {/*    <h3 className="mt-2 text-sm font-semibold text-gray-900">*/}
+      {/*      No airports found*/}
+      {/*    </h3>*/}
+      {/*    <p className="mt-1 text-sm text-muted-foreground">*/}
+      {/*      Get started by adding your first airport.*/}
+      {/*    </p>*/}
+      {/*  </div>*/}
+      {/*)}*/}
+      <div className="mt-4">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => setPagination({...pagination, pageIndex: pagination.pageIndex - 1})}
+                className={pagination.pageIndex === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                tabIndex={pagination.pageIndex === 1 ? -1 : 0}
+                aria-disabled={pagination.pageIndex === 1}
+              />
+            </PaginationItem>
+            
+            {/* Current page indicator */}
+            <PaginationItem>
+              <PaginationLink isActive>
+                {pagination.pageIndex}
+              </PaginationLink>
+            </PaginationItem>
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => setPagination({...pagination, pageIndex: pagination.pageIndex + 1})}
+                className={pagination.pageIndex === meta?.page?.total ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                tabIndex={pagination.pageIndex === meta?.page?.total ? -1 : 0}
+                aria-disabled={pagination.pageIndex === meta?.page?.total}
+              />
+            </PaginationItem>
+            
+            <PaginationItem>
+              <span className="flex items-center h-10 px-4 text-sm">
+                Page {pagination.pageIndex} of {meta?.page?.total || 1}
+              </span>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
       <AlertDialog
         open={!!deleteAirportId}
         onOpenChange={() => setDeleteAirportId(null)}
