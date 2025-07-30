@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { getMe } from '@/lib/server/auth/me';
+import { toast } from 'sonner';
 
 export function useAuth(requireAuth: boolean = false) {
     const user = useAuthStore((state) => state.user);
@@ -35,8 +36,15 @@ export function useAuth(requireAuth: boolean = false) {
             return;
         }
 
-        if (userData) {
+        if (userData && operator) {
             setAuth({ user: userData, token: token || "", operator });
+        }
+
+        if (!operator) {
+            logout();
+            toast.error("You are not authorized to access this application, please contact your administrator");
+            router.push('/auth');
+            return;
         }
     }, [token, logout, router, setAuth, hasHydrated]);
 

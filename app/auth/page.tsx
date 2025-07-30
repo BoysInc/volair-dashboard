@@ -17,17 +17,17 @@ export default function AuthPage() {
 
   const handleSubmit = async (data: SignInFormData | SignUpFormData) => {
     // TODO: Implement actual authentication logic here
-    console.log("Form submitted:", data);
+    // console.log("Form submitted:", data);
 
     if (mode === "signin") {
-      console.log("Signing in with:", data);
+      // console.log("Signing in with:", data);
       // Handle sign in logic
       const { data: loginData, error: loginError } = await login({
         email: data.email,
         password: data.password,
       });
 
-      console.log("Login data:", loginData);
+      // console.log("Login data:", loginData);
 
       if (loginError) {
         console.error("Login error:", loginError);
@@ -38,7 +38,7 @@ export default function AuthPage() {
       "name" in data &&
       "confirmPassword" in data
     ) {
-      console.log("Signing up with:", data);
+      // console.log("Signing up with:", data);
       // Handle sign up logic
       const { data: signupData, error: signupError } = await signup({
         email: data.email,
@@ -53,7 +53,7 @@ export default function AuthPage() {
         return;
       }
 
-      console.log("Signup data:", signupData);
+      // console.log("Signup data:", signupData);
       router.push("/onboarding");
     } else {
       console.error("Invalid form data");
@@ -63,11 +63,11 @@ export default function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     // TODO: Implement Google sign-in logic here
-    console.log("Google sign in clicked");
+    // console.log("Google sign in clicked");
 
     // Simulate Google OAuth flow
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log("Google sign in completed");
+    // console.log("Google sign in completed");
   };
 
   return (
