@@ -69,6 +69,7 @@ export interface FlightFormData {
     status: string;
     is_recurring: boolean;
     is_empty_leg: boolean;
+    route_type: "Charter" | "Seats";
     aircraft: Aircraft;
 }
 

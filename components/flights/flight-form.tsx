@@ -15,6 +15,7 @@ import {
   Activity,
   Repeat,
   Timer,
+  Route,
 } from "lucide-react";
 import { FlightWithDetails, FlightFormData } from "@/lib/types/flight";
 import { formatNumberWithCommas, cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
         ? format(new Date(flight.departure_date), "HH:mm")
         : "12:00",
       is_empty_leg: flight?.is_empty_leg,
+      route_type: "Charter",
     },
   });
 
@@ -132,6 +134,7 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
         is_recurring: data.is_recurring ? "true" : "false",
         departure_date: data.departure_date,
         is_empty_leg: data.is_empty_leg ? "true" : "false",
+        route_type: data.route_type,
         operator_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
@@ -419,6 +422,41 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
           />
           {errors.status && (
             <p className="text-sm text-red-600">{errors.status.message}</p>
+          )}
+        </div>
+
+        {/* Route Type */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="route_type"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <Route className="h-4 w-4" />
+            Route Type
+            <span className="text-red-500 ml-1">*</span>
+          </Label>
+          <Controller
+            name="route_type"
+            control={control}
+            rules={{
+              required: "Route type is required",
+            }}
+            render={({ field }) => (
+              <select
+                id="route_type"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
+                value={field.value}
+                onChange={(e) =>
+                  field.onChange(e.target.value as "Charter" | "Seats")
+                }
+              >
+                <option value="Charter">Charter</option>
+                <option value="Seats">Seats</option>
+              </select>
+            )}
+          />
+          {errors.route_type && (
+            <p className="text-sm text-red-600">{errors.route_type.message}</p>
           )}
         </div>
 
