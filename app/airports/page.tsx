@@ -1,45 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Building } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Airport } from "@/lib/types/flight";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {useQuery, useMutation, useQueryClient, keepPreviousData} from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Skeleton, TableSkeleton } from "@/components/ui/loading-state";
+import { TableSkeleton } from "@/components/ui/loading-state";
 import { AirportsTable } from "@/components/airports/airports-table";
 import { AirportForm } from "@/components/airports/airport-form";
 import { UpdateAirportModal } from "@/components/airports/update-airport-modal";
 import { toast } from "sonner";
+import {getCoreRowModel, PaginationState, useReactTable} from "@tanstack/react-table";
+import {createColumnHelper} from "@tanstack/table-core";
+
+const columnHelper = createColumnHelper<Airport>()
 
 export default function AirportsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingAirport, setEditingAirport] = useState<Airport | null>(null);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 1,
+    pageSize: 20,
+  })
 
   const { token } = useAuth(true);
   const queryClient = useQueryClient();
-
+  const [inputValue, setInputValue] = useState("");
+  const [filter, setFilter] = useState("");
+  
+  // Debounce filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilter(inputValue);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [inputValue]);
   const { data: airports, isLoading } = useQuery({
-    queryKey: ["airports"],
+    queryKey: ["airports", filter,  pagination.pageIndex],
     queryFn: async () => {
+      const url = new URL(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports`);
+      url.searchParams.append('page', pagination.pageIndex.toString());
+      
+      if (filter !== "") {
+        url.searchParams.append('filter[search]', filter);
+      }
+      
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports`,
+        url.toString(),
         {
           method: "GET",
           headers: {
@@ -56,7 +88,64 @@ export default function AirportsPage() {
       return response.json();
     },
     enabled: !!token,
+    placeholderData: keepPreviousData,
   });
+  const columns = [
+    columnHelper.accessor('name', {
+      cell: info => info.getValue(),
+      header: () => <span>Airport Name</span>,
+    }),
+    columnHelper.accessor('iata_code', {
+      cell: info => info.getValue(),
+      header: () => <span>IATA code</span>,
+    }),
+    columnHelper.accessor('city', {
+      cell: info => info.getValue(),
+      header: () => <span>City</span>,
+    }),
+    columnHelper.display({
+      id: 'actions',
+      cell: ({ row }) => {
+        const airport = row.original;
+        return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setEditingAirport(airport)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    onClick={() => deleteAirportMutation.mutate(airport.id)}
+                    className="text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+        );
+      },
+      header: () => <span className="sr-only">Actions</span>,
+    }),
+  ]
+  const table = useReactTable({
+    data: airports?.data ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    state: {
+      pagination,
+    }
+  })
 
   const deleteAirportMutation = useMutation({
     mutationFn: async (airportId: string) => {
@@ -127,17 +216,29 @@ export default function AirportsPage() {
 
       {/* Airports Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle>Airport Database</CardTitle>
+          <div className="relative w-64 flex items-center">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search airports..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading || !airports ? (
             <TableSkeleton rows={5} />
           ) : (
             <AirportsTable
-              airports={airports?.data ?? []}
-              onEdit={setEditingAirport}
+                table={table}
               onDelete={handleDeleteAirport}
+                pagination={pagination}
+                setPagination={setPagination}
+                meta={airports?.meta}
             />
           )}
         </CardContent>
