@@ -19,14 +19,12 @@ export const getMe = async (token: string): Promise<{ user: User | null, operato
     )
 
     if (error) {
-        console.log("error", error)
         return { user: null, operator: null, error: error.message };
     }
 
     const { data: userData, error: userError } = await tryCatch(data.json())
 
     if (userError) {
-        console.log("userError", userError)
         return { user: null, operator: null, error: userError.message };
     }
 

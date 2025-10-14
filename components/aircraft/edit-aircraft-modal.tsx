@@ -51,7 +51,7 @@ interface EditAircraftFormFields {
 }
 
 export function EditAircraftModal() {
-  const { token } = useAuth();
+  const { token, operator } = useAuth();
   const queryClient = useQueryClient();
   const { isOpen, isEditMode, editingAircraft, closeModal } =
     useAircraftModalStore();
@@ -59,7 +59,6 @@ export function EditAircraftModal() {
   const {
     register,
     handleSubmit,
-    control,
     watch,
     setValue,
     reset,
@@ -109,7 +108,7 @@ export function EditAircraftModal() {
         return { data: null, error: "No aircraft ID provided" };
       }
 
-      return updateAircraft(token, editingAircraft.id, data);
+      return updateAircraft(token, editingAircraft.id, data, operator?.id!);
     },
     onSuccess: (response) => {
       if (response.error) {

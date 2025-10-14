@@ -4,11 +4,11 @@ import { AuthStore } from '@/lib/types/auth';
 
 export const useAuthStore = create<AuthStore>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             // Initial state
             user: null,
-            operator: null,
             token: null,
+            operator: null,
             isAuthenticated: false,
             isLoading: false,
             hasHydrated: false,
@@ -17,8 +17,8 @@ export const useAuthStore = create<AuthStore>()(
             setAuth: (data) => {
                 set({
                     user: data.user,
-                    operator: data.operator,
                     token: data.token,
+                    operator: data.operator,
                     isAuthenticated: true,
                     isLoading: false,
                 });

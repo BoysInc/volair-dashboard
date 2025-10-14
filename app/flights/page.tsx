@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import { Calendar, Plane } from "lucide-react";
 import { OperatorFlight } from "@/lib/types/flight";
 import { CreateFlightModal } from "@/components/flights/create-flight-modal";

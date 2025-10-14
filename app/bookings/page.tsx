@@ -7,12 +7,12 @@ import { BookingDetailsModal } from "@/components/bookings/booking-details-modal
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   DollarSign,
   Users,
   Calendar,
   TrendingUp,
-  TrendingDown,
   Clock,
   CheckCircle,
   XCircle,
@@ -71,7 +71,7 @@ export default function BookingsPage() {
 
   const handleEditBooking = (booking: BookingWithDetails) => {
     // TODO: Implement edit booking functionality
-    console.log("Edit booking:", booking.id);
+    toast.info("Editing booking");
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
@@ -82,7 +82,7 @@ export default function BookingsPage() {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setBookings((prev) => prev.filter((b) => b.id !== bookingId));
       } catch (error) {
-        console.error("Error deleting booking:", error);
+        toast.error("Something went wrong while deleting the booking");
       } finally {
         setIsLoading(false);
       }

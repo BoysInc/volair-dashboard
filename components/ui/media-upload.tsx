@@ -394,56 +394,127 @@ export const MediaUpload = React.forwardRef<HTMLDivElement, MediaUploadProps>(
         {uploadedFiles.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Uploaded Files</Label>
-            {uploadedFiles.map((file) => (
-              <Card key={file.id} className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {getFileIcon(file.file)}
+            {uploadedFiles.map((file) => {
+              const isImage = file.file.type.startsWith("image/");
+
+              return (
+                <Card key={file.id} className="p-3">
+                  <div className="flex items-start space-x-3">
+                    {/* Image Preview or File Icon */}
+                    <div className="flex-shrink-0">
+                      {isImage ? (
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={file.url}
+                            alt={file.file.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to file icon if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `
+                                  <div class="w-full h-full flex items-center justify-center">
+                                    <svg class="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                  </div>
+                                `;
+                              }
+                            }}
+                          />
+
+                          {/* Loading overlay for uploading images */}
+                          {file.status === "uploading" && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <LoadingState
+                                size="sm"
+                                className="h-4 w-4 text-white"
+                              />
+                            </div>
+                          )}
+
+                          {/* Success/Error overlay */}
+                          {file.status === "success" && (
+                            <div className="absolute top-1 right-1">
+                              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <CheckCircle2 className="h-3 w-3 text-white" />
+                              </div>
+                            </div>
+                          )}
+
+                          {file.status === "error" && (
+                            <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                              <AlertCircle className="h-6 w-6 text-red-500" />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                          {getFileIcon(file.file)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* File Information */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {file.file.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(file.file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {file.file.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                          {isImage && (
+                            <p className="text-xs text-muted-foreground">
+                              Image •{" "}
+                              {file.file.type.split("/")[1].toUpperCase()}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center space-x-2 ml-2">
+                          <Badge
+                            variant={
+                              file.status === "success"
+                                ? "default"
+                                : file.status === "error"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {file.status}
+                          </Badge>
+
+                          {!isImage && getStatusIcon(file)}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(file.id)}
+                            disabled={file.status === "uploading"}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {file.status === "uploading" && (
+                        <Progress value={file.progress} className="mt-2" />
+                      )}
+
+                      {file.status === "error" && file.error && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {file.error}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      variant={
-                        file.status === "success"
-                          ? "default"
-                          : file.status === "error"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {file.status}
-                    </Badge>
-
-                    {getStatusIcon(file)}
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(file.id)}
-                      disabled={file.status === "uploading"}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {file.status === "uploading" && (
-                  <Progress value={file.progress} className="mt-2" />
-                )}
-
-                {file.status === "error" && file.error && (
-                  <p className="text-xs text-red-500 mt-1">{file.error}</p>
-                )}
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
 

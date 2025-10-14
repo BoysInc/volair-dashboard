@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/card";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Separator } from "@/components/ui/separator";
+import { Loader2 } from "lucide-react";
 import {
   signInSchema,
   signUpSchema,
-  SignInFormData,
   SignUpFormData,
 } from "@/lib/validations/auth";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
@@ -31,16 +31,11 @@ const googleClientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 interface AuthFormProps {
   mode: "signin" | "signup";
   onToggleMode: () => void;
-  onGoogleSignIn: () => Promise<void>;
 }
 
-export function AuthForm({
-  mode,
-  onToggleMode,
-  onGoogleSignIn,
-}: AuthFormProps) {
-  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
+export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   const { setAuth, setLoading, isLoading } = useAuthStore();
+  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
   const isSignUp = mode === "signup";
 
@@ -59,11 +54,7 @@ export function AuthForm({
     setLoading(true);
 
     if (isSignUp) {
-      const {
-        data: signupData,
-        error: signupError,
-        validationErrors,
-      } = await signup(data);
+      const { error: signupError, validationErrors } = await signup(data);
 
       if (signupError) {
         // console.log("Signup error:", signupError);
@@ -71,8 +62,8 @@ export function AuthForm({
 
         // Handle validation errors
         if (validationErrors) {
-          // You can display field-specific errors here if needed
-          console.log("Validation errors:", validationErrors);
+          // Display a generic message for validation errors
+          toast.error("Please check your input and try again");
         }
 
         setLoading(false);
@@ -82,7 +73,7 @@ export function AuthForm({
       // console.log("Signup data:", signupData);
       toast.success("Account created successfully!");
       setLoading(false);
-      router.push("/onboarding");
+      router.push("/");
     } else {
       const {
         data: loginData,
@@ -91,12 +82,11 @@ export function AuthForm({
       } = await login(data);
 
       if (loginError) {
-        console.error("Login error:", loginError);
         toast.error(loginError);
 
         // Handle validation errors
         if (validationErrors) {
-          console.log("Validation errors:", validationErrors);
+          toast.error("Please check your input and try again");
         }
 
         setLoading(false);
@@ -105,24 +95,12 @@ export function AuthForm({
 
       if (loginData) {
         // Store auth data in Zustand store
-        setAuth(loginData.data);
+        setAuth({ ...loginData.data, operator: null });
         toast.success(loginData.message || "Logged in successfully!");
-        // console.log("Login data:", loginData);
         router.push("/");
       }
 
       setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    try {
-      await onGoogleSignIn();
-    } catch (error) {
-      console.error("Google sign in error:", error);
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -131,9 +109,11 @@ export function AuthForm({
     onToggleMode();
   };
 
-  const handleLogin = async (credentialResponse: any) => {
+  const handleGoogleLogin = async (credentialResponse: any) => {
+    setIsGoogleLoading(true);
+
     const { data: res, error: fetchError } = await tryCatch(
-      fetch("https://nelwhix.online/api/v1/auth/google/login", {
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/auth/google/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,30 +124,32 @@ export function AuthForm({
     );
 
     if (fetchError) {
-      console.error("Google login fetch error:", fetchError);
       toast.error("Failed to connect to Google authentication");
+      setIsGoogleLoading(false);
       return;
     }
 
     const { data: responseData, error: jsonError } = await tryCatch(res.json());
 
     if (jsonError) {
-      console.error("Error parsing Google login response:", jsonError);
       toast.error("Invalid response from Google authentication");
+      setIsGoogleLoading(false);
       return;
     }
 
-    // console.log("Google login response:", responseData);
-
-    if (responseData.token) {
-      // TODO: Integrate with Zustand store instead of localStorage
-      localStorage.setItem("auth_token", responseData.token);
-      // console.log("Google User:", responseData);
-      toast.success("Successfully logged in with Google!");
+    if (responseData) {
+      setAuth({
+        token: responseData.data.token,
+        user: responseData.data.user,
+        operator: null,
+      });
+      toast.success("Logged in sucessfully!");
+      router.push("/");
     } else {
-      console.error("Google login failed:", responseData);
       toast.error("Google login failed");
     }
+
+    setIsGoogleLoading(false);
   };
 
   return (
@@ -184,10 +166,20 @@ export function AuthForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <GoogleLogin
-            onSuccess={handleLogin}
-            onError={() => console.log("Login Failed")}
-          />
+          {isGoogleLoading ? (
+            <Button type="button" variant="outline" className="w-full" disabled>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in with Google...
+            </Button>
+          ) : (
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={() => {
+                toast.error("Google login failed");
+                setIsGoogleLoading(false);
+              }}
+            />
+          )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -209,7 +201,7 @@ export function AuthForm({
                 placeholder="John Doe"
                 registration={register("name")}
                 error={errors.name?.message}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 required
               />
             )}
@@ -221,7 +213,7 @@ export function AuthForm({
               placeholder="john@example.com"
               registration={register("email")}
               error={errors.email?.message}
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               required
             />
 
@@ -233,7 +225,7 @@ export function AuthForm({
                 placeholder="Enter your phone number"
                 registration={register("phone")}
                 error={errors.phone?.message}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 required
               />
             )}
@@ -245,7 +237,7 @@ export function AuthForm({
               placeholder="Enter your password"
               registration={register("password")}
               error={errors.password?.message}
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               showPasswordToggle
               required
             />
@@ -258,16 +250,18 @@ export function AuthForm({
                 placeholder="Confirm your password"
                 registration={register("confirmPassword")}
                 error={errors.confirmPassword?.message}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 showPasswordToggle
                 required
               />
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              ) : null}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || isGoogleLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSignUp ? "Create Account" : "Sign In"}
             </Button>
           </form>

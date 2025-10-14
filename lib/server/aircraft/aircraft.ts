@@ -5,11 +5,9 @@ import { tryCatch } from "@/lib/utils";
 import { DeleteAircraftErrorEnum } from "@/lib/utils/aircraft";
 import { AddAircraftFormData } from "@/lib/validations/aircraft";
 
-export const getOperatorAircrafts = async (token: string | null): Promise<{ data: Aircraft[] | null, error: string | null }> => {
-    // console.log("Token: ", token);
-
+export const getOperatorAircrafts = async (token: string | null, operatorID: string): Promise<{ data: Aircraft[] | null, error: string | null }> => {
     const { data, error } = await tryCatch(
-        fetch(`${process.env.BACKEND_BASE_API}/aircraft`, {
+        fetch(`${process.env.BACKEND_BASE_API}/operators/${operatorID}/aircraft`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -32,18 +30,17 @@ export const getOperatorAircrafts = async (token: string | null): Promise<{ data
         return { data: null, error: aircraftsError.message };
     }
 
-    // console.log("Aircrafts: %j", aircrafts?.data);
-
     return { data: aircrafts?.data as Aircraft[], error: null };
 }
 
 export const createAircraft = async (
     token: string | null,
-    aircraftData: AddAircraftFormData
+    aircraftData: AddAircraftFormData,
+    operatorID: string,
 ): Promise<{ data: Aircraft | null, error: string | null }> => {
 
     const { data, error } = await tryCatch(
-        fetch(`${process.env.BACKEND_BASE_API}/aircraft`, {
+        fetch(`${process.env.BACKEND_BASE_API}/operators/${operatorID}/aircraft`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -58,10 +55,6 @@ export const createAircraft = async (
     }
 
     const { data: aircraft, error: aircraftError } = await tryCatch(data.json())
-
-    // console.log("data", data);
-
-
     if (!data.ok) {
         return { data: null, error: "Failed to create aircraft: " + data.statusText + " " + data.status };
     }
@@ -73,10 +66,10 @@ export const createAircraft = async (
     return { data: aircraft as Aircraft, error: null };
 }
 
-export const getAircraftWidgets = async (token: string | null): Promise<{ data: AircraftWidget | null, error: string | null }> => {
+export const getAircraftWidgets = async (token: string | null, operatorID: string): Promise<{ data: AircraftWidget | null, error: string | null }> => {
 
     const { data, error } = await tryCatch(
-        fetch(`${process.env.BACKEND_BASE_API}/aircraft/widgets`, {
+        fetch(`${process.env.BACKEND_BASE_API}/operators/${operatorID}/aircraft/widgets`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -105,7 +98,8 @@ export const getAircraftWidgets = async (token: string | null): Promise<{ data: 
 export const updateAircraft = async (
     token: string | null,
     aircraftId: string,
-    updateData: Partial<AddAircraftFormData>
+    updateData: Partial<AddAircraftFormData>,
+    operatorID: string
 ): Promise<{ data: Aircraft | null, error: string | null }> => {
 
     // Defensive checks to prevent throws
@@ -122,7 +116,7 @@ export const updateAircraft = async (
     }
 
     const { data, error } = await tryCatch(
-        fetch(`${process.env.BACKEND_BASE_API}/aircraft/${aircraftId}`, {
+        fetch(`${process.env.BACKEND_BASE_API}/operators/${operatorID}/aircraft/${aircraftId}`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -161,11 +155,12 @@ export const updateAircraft = async (
 
 export const deleteAircraft = async (
     token: string | null,
-    aircraftId: string
+    aircraftId: string,
+    operatorID: string
 ): Promise<{ data: Aircraft | null, error: string | null | DeleteAircraftError }> => {
 
     const { data, error } = await tryCatch(
-        fetch(`${process.env.BACKEND_BASE_API}/aircraft/${aircraftId}`, {
+        fetch(`${process.env.BACKEND_BASE_API}/operators/${operatorID}/aircraft/${aircraftId}`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",

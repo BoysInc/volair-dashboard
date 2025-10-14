@@ -21,7 +21,6 @@ export interface LoginResponse {
     message: string;
     data: {
         user: User;
-        operator: Operator | null;
         token: string;
     };
 }
@@ -35,8 +34,14 @@ export interface AuthState {
     hasHydrated: boolean;
 }
 
+interface SetAuthPayload {
+    user: User;
+    operator: Operator | null;
+    token: string;
+}
+
 export interface AuthActions {
-    setAuth: (data: LoginResponse['data']) => void;
+    setAuth: (data: SetAuthPayload) => void;
     logout: () => void;
     setLoading: (loading: boolean) => void;
     setHasHydrated: (hasHydrated: boolean) => void;
