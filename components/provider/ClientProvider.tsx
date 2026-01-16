@@ -8,7 +8,19 @@ import { EditAircraftModal } from "../aircraft/edit-aircraft-modal";
 import { ViewAircraftModal } from "../aircraft/view-aircraft-modal";
 
 const ClientProvider = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = new QueryClient();
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+          },
+          mutations: {
+            retry: false,
+          },
+        },
+      })
+  );
 
   return (
     <QueryClientProvider client={queryClient}>

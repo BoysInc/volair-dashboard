@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
-import { LoadingState } from "@/components/ui/loading-state";
 import {
   DashboardStats,
   getDashboardStats,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
+import { DashboardStatsSkeleton } from "./dashboard-overview-skeleton";
 
 const StatCards = ({ token }: { token: string }) => {
   const {
@@ -34,7 +34,7 @@ const StatCards = ({ token }: { token: string }) => {
   }
 
   if (isLoading) {
-    return <LoadingState />;
+    return <DashboardStatsSkeleton />;
   }
 
   if (stats?.error !== null && stats?.error !== undefined) {

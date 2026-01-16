@@ -12,6 +12,7 @@ export interface AircraftWidget {
     aircraft_under_maintenance: number;
     available_capacity: number;
     aircraft_with_wifi: number;
+    aircraft_in_flight: number;
 }
 
 export interface Aircraft {

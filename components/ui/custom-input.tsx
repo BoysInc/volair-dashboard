@@ -104,6 +104,7 @@ const CustomInput = React.forwardRef<
     ref
   ) => {
     const [showPassword, setShowPassword] = React.useState(false);
+    const dateInputRef = React.useRef<HTMLInputElement>(null);
 
     // Generate unique ID if not provided
     const fieldId =
@@ -118,6 +119,36 @@ const CustomInput = React.forwardRef<
     // Toggle password visibility
     const togglePasswordVisibility = () => {
       setShowPassword(!showPassword);
+    };
+
+    // Handler to open date picker when clicking on the input container
+    const handleDateInputClick = () => {
+      const input = dateInputRef.current;
+      if (
+        input &&
+        (type === "date" || type === "datetime-local" || type === "time")
+      ) {
+        try {
+          // Use showPicker if available (modern browsers)
+          if (
+            "showPicker" in input &&
+            typeof (input as any).showPicker === "function"
+          ) {
+            (input as any).showPicker();
+          } else {
+            // Fallback: focus and click the input to trigger native picker
+            (input as HTMLInputElement).focus();
+            (input as HTMLInputElement).click();
+          }
+        } catch (error) {
+          // Fallback if showPicker fails (some browsers don't support it)
+          try {
+            (input as HTMLInputElement).focus();
+          } catch (e) {
+            // Silently fail
+          }
+        }
+      }
     };
 
     // Extract ref from registration to handle it separately
@@ -178,6 +209,27 @@ const CustomInput = React.forwardRef<
               registrationRef
             )}
           />
+        );
+      }
+
+      // For date/datetime/time inputs - make entire field clickable
+      if (type === "date" || type === "datetime-local" || type === "time") {
+        return (
+          <div
+            className="relative cursor-pointer"
+            onClick={handleDateInputClick}
+          >
+            <Input
+              {...inputProps}
+              type={inputType}
+              className={cn("cursor-pointer", inputProps.className)}
+              ref={combineRefs(
+                ref as React.Ref<HTMLInputElement>,
+                registrationRef,
+                dateInputRef as React.Ref<HTMLInputElement>
+              )}
+            />
+          </div>
         );
       }
 

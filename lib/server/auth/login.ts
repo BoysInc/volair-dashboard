@@ -56,14 +56,24 @@ export const login = async ({ email, password }: SignInFormData): Promise<AuthRe
 }
 
 
-export const signup = async ({ email, password, name, phone, confirmPassword }: SignUpFormData): Promise<AuthResult> => {
+export const signup = async ({ email, name, phone, country, license_number }: SignUpFormData): Promise<AuthResult> => {
 
-    const resBody = JSON.stringify({ email, password, "first_name": name.split(" ")[0], "last_name": name.split(" ")[1], phone, "password_confirmation": confirmPassword })
-
-    // console.log(resBody)
+    const resBody = JSON.stringify({
+        name,
+        email,
+        phone,
+        country,
+        license_number,
+        members: [
+            {
+                email,
+                role: "Admin"
+            }
+        ]
+    })
 
     const { data, error } = await tryCatch(
-        fetch(`${process.env.BACKEND_BASE_API}/users`, {
+        fetch(`${process.env.BACKEND_BASE_API}/operators`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -73,7 +83,6 @@ export const signup = async ({ email, password, name, phone, confirmPassword }: 
     )
 
     if (error !== null) {
-        // console.log(error)
         return { error: error.message };
     }
 
@@ -91,14 +100,11 @@ export const signup = async ({ email, password, name, phone, confirmPassword }: 
         return { error: `Failed to signup: ${data.status} ${data.statusText}` };
     }
 
-    const { data: userData, error: userError } = await tryCatch(data.json())
+    const { data: operatorData, error: operatorError } = await tryCatch(data.json())
 
-    if (userError) {
-        // console.log(userError)
-        return { error: userError.message };
+    if (operatorError) {
+        return { error: operatorError.message };
     }
 
-    // console.log(userData)
-
-    return { data: userData };
+    return { data: operatorData };
 };

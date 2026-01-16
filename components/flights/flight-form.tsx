@@ -13,26 +13,22 @@ import {
   Calendar as CalendarIcon,
   DollarSign,
   Activity,
-  Repeat,
   Timer,
   Route,
 } from "lucide-react";
 import { FlightWithDetails, FlightFormData } from "@/lib/types/flight";
-import { formatNumberWithCommas, cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import {
+  cn,
+  formatNumberWithCommas,
+  invalidateAndRefetchQueries,
+} from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAuthStore } from "@/lib/store/auth-store";
-import { getOperatorAircrafts } from "@/lib/server/aircraft/aircraft";
+import useFeatureFlag from "@/hooks/feature-flags/use-feature-flags";
 
 interface FlightFormProps {
   flight?: FlightWithDetails; // For editing existing flight
@@ -43,7 +39,10 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
   const { token } = useAuth(true);
   const isEditing = !!flight;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formattedPrice, setFormattedPrice] = useState<string>("");
+  const [formattedOneWayPrice, setFormattedOneWayPrice] = useState<string>("");
+  const [formattedRoundTripPrice, setFormattedRoundTripPrice] =
+    useState<string>("");
+  const [formattedDuration, setFormattedDuration] = useState<string>("");
 
   const {
     register,
@@ -54,13 +53,13 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
     formState: { errors },
   } = useForm<FlightFormData>({
     defaultValues: {
-      aircraft_id: flight?.aircraft_id || "",
+      aircraft_id: flight?.aircraft?.id || "",
       departure_airport_id: flight?.departure_airport_id || "",
       arrival_airport_id: flight?.arrival_airport_id || "",
       estimated_duration: flight?.estimated_duration || "",
-      price_usd: flight?.price_usd || 0,
+      one_way_price_usd: 0,
+      round_trip_price_usd: 0,
       status: flight?.status ?? "Active",
-      is_recurring: false,
       departure_date: flight?.departure_date || "",
       departure_time: flight?.departure_date
         ? format(new Date(flight.departure_date), "HH:mm")
@@ -71,69 +70,47 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
   });
 
   const departureAirportId = watch("departure_airport_id");
-  const selectedAircraftId = watch("aircraft_id");
+  const routeType = watch("route_type");
+  const oneWayPrice = watch("one_way_price_usd");
+  const roundTripPrice = watch("round_trip_price_usd");
   const estimatedDuration = watch("estimated_duration");
-  const price_usd = watch("price_usd");
-
-  // Fetch aircraft data
-  const { data: aircraftData } = useQuery({
-    queryKey: ["aircraft"],
-    queryFn: async () => {
-      const { data, error } = await getOperatorAircrafts(
-        token,
-        operator?.id || ""
-      );
-
-      if (error) {
-        throw new Error(error);
-      }
-
-      return data;
-    },
-    enabled: !!token,
-  });
-
-  // Calculate price based on aircraft price_per_hour_usd and estimated duration
-  useEffect(() => {
-    if (selectedAircraftId && estimatedDuration && aircraftData) {
-      const selectedAircraft = aircraftData.find(
-        (aircraft: any) => aircraft.id === selectedAircraftId
-      );
-
-      if (selectedAircraft && selectedAircraft.price_per_hour_usd) {
-        const duration = parseFloat(estimatedDuration);
-        if (!isNaN(duration)) {
-          const calculatedPrice =
-            selectedAircraft.price_per_hour_usd * duration;
-          setValue("price_usd", calculatedPrice);
-        }
-      }
-    }
-  }, [selectedAircraftId, estimatedDuration, aircraftData, setValue]);
-
-  // Format price with commas for display
-  useEffect(() => {
-    if (price_usd) {
-      setFormattedPrice(formatNumberWithCommas(price_usd));
-    } else {
-      setFormattedPrice("");
-    }
-  }, [price_usd]);
 
   const queryClient = useQueryClient();
   const operator = useAuthStore((state) => state.operator);
+
+  // Format price values for display
+  useEffect(() => {
+    if (oneWayPrice !== undefined && oneWayPrice !== null) {
+      setFormattedOneWayPrice(oneWayPrice > 0 ? oneWayPrice.toString() : "");
+    }
+  }, [oneWayPrice]);
+
+  useEffect(() => {
+    if (roundTripPrice !== undefined && roundTripPrice !== null) {
+      setFormattedRoundTripPrice(
+        roundTripPrice > 0 ? roundTripPrice.toString() : ""
+      );
+    }
+  }, [roundTripPrice]);
+
+  useEffect(() => {
+    if (estimatedDuration) {
+      setFormattedDuration(estimatedDuration.toString());
+    }
+  }, [estimatedDuration]);
+
   const mutation = useMutation({
     mutationFn: async (data: FlightFormData) => {
       const apiData = {
         aircraft_id: data.aircraft_id,
         departure_airport_id: data.departure_airport_id,
         arrival_airport_id: data.arrival_airport_id,
-        estimated_duration: data.estimated_duration,
+        estimated_duration: Number(data.estimated_duration),
         status: data.status,
-        price_usd: Number(data.price_usd), // Ensure price_usd is a number
-        is_recurring: data.is_recurring ? "true" : "false",
-        departure_date: data.departure_date,
+        one_way_price_usd: Number(data.one_way_price_usd),
+        round_trip_price_usd: Number(data.round_trip_price_usd),
         is_empty_leg: data.is_empty_leg ? "true" : "false",
+        departure_date: data.departure_date,
         route_type: data.route_type,
         operator_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
@@ -165,8 +142,7 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
       return response.json();
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["flights"] });
-      await queryClient.invalidateQueries({ queryKey: ["flightWidgets"] });
+      invalidateAndRefetchQueries(queryClient, ["flights", "flightWidgets"]);
       setIsSubmitting(false);
       onCancel();
       toast.success(
@@ -203,21 +179,27 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
 
     // Parse the date and format it as 'Y-m-d H:i' before submission
     let formattedDate = data.departure_date;
-    if (data.departure_date) {
+
+    // For Charter flights, departure_date is optional
+    if (data.departure_date && data.route_type === "Seats") {
       // If the input contains both date and time (from datetime-local)
       const dateObj = new Date(data.departure_date);
       formattedDate = format(dateObj, "yyyy-MM-dd HH:mm");
+    } else if (data.route_type === "Charter") {
+      // For Charter flights, set to null or empty string
+      formattedDate = "";
     }
 
     // Combine with formatted date for submission
     const combinedData = {
       ...data,
       departure_date: formattedDate,
-      price_usd: Number(data.price_usd), // Ensure price_usd is preserved as a number
     };
 
     mutation.mutate(combinedData);
   };
+
+  const { isEnabled: isOneWaySeatsEnabled } = useFeatureFlag("OneWaySeats");
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -281,43 +263,95 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
           />
         </div>
 
-        {/* Departure Date and Time */}
-        <div className="space-y-2">
+        {/* Route Type */}
+        <div className="md:col-span-2 space-y-2">
           <Label
-            htmlFor="departure_date"
+            htmlFor="route_type"
             className="text-sm font-medium flex items-center gap-2"
           >
-            <CalendarIcon className="h-4 w-4" />
-            When is this flight starting?
+            <Route className="h-4 w-4" />
+            Route Type
             <span className="text-red-500 ml-1">*</span>
           </Label>
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Date Picker */}
-            <div className="flex-1">
-              <Controller
-                name="departure_date"
-                control={control}
-                rules={{ required: "Departure date is required" }}
-                render={({ field }) => (
-                  <CustomInput
-                    type="datetime-local"
-                    label=""
-                    id="departure_date"
-                    {...field}
-                    className={cn(
-                      errors.departure_date ? "border-red-500" : ""
-                    )}
-                  />
+          <Controller
+            name="route_type"
+            control={control}
+            rules={{
+              required: "Route type is required",
+            }}
+            render={({ field }) => (
+              <select
+                id="route_type"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
+                value={field.value}
+                onChange={(e) =>
+                  field.onChange(e.target.value as "Charter" | "Seats")
+                }
+              >
+                <option value="Charter">Charter</option>
+                <option value="Seats">Seats</option>
+              </select>
+            )}
+          />
+          {errors.route_type && (
+            <p className="text-sm text-red-600">{errors.route_type.message}</p>
+          )}
+        </div>
+
+        {/* Departure Date and Time */}
+        {routeType === "Seats" && (
+          <div className="space-y-2">
+            <Label
+              htmlFor="departure_date"
+              className="text-sm font-medium flex items-center gap-2"
+            >
+              <CalendarIcon className="h-4 w-4" />
+              When is this flight starting?
+              <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Date Picker */}
+              <div className="flex-1">
+                <Controller
+                  name="departure_date"
+                  control={control}
+                  rules={{
+                    required:
+                      routeType === "Seats"
+                        ? "Departure date is required for scheduled flights"
+                        : false,
+                  }}
+                  render={({ field }) => (
+                    <CustomInput
+                      type="datetime-local"
+                      label=""
+                      min={new Date().toISOString().slice(0, 16)}
+                      id="departure_date"
+                      {...field}
+                      className={cn(
+                        errors.departure_date ? "border-red-500" : ""
+                      )}
+                    />
+                  )}
+                />
+                {errors.departure_date && (
+                  <p className="text-sm text-red-600">
+                    {errors.departure_date.message}
+                  </p>
                 )}
-              />
-              {errors.departure_date && (
-                <p className="text-sm text-red-600">
-                  {errors.departure_date.message}
-                </p>
-              )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {routeType === "Charter" && (
+          <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>Charter Flight:</strong> No scheduled departure time
+              needed. The flight will be scheduled when a customer books it.
+            </p>
+          </div>
+        )}
 
         {/* Estimated Duration */}
         <div className="space-y-2">
@@ -326,18 +360,28 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
             className="text-sm font-medium flex items-center gap-2"
           >
             <Timer className="h-4 w-4" />
-            Estimated Duration in Hours
+            Estimated Duration in Minutes
             <span className="text-red-500 ml-1">*</span>
           </Label>
-          <Input
-            id="estimated_duration"
-            placeholder="e.g. 2"
-            {...register("estimated_duration", {
-              required: "Estimated duration is required",
-            })}
-            className={cn(
-              "mt-2",
-              errors.estimated_duration ? "border-red-500" : ""
+          <Controller
+            name="estimated_duration"
+            control={control}
+            rules={{ required: "Estimated duration is required" }}
+            render={({ field }) => (
+              <Input
+                id="estimated_duration"
+                placeholder="e.g. 120"
+                value={formattedDuration}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  setFormattedDuration(value);
+                  field.onChange(value);
+                }}
+                className={cn(
+                  "mt-2",
+                  errors.estimated_duration ? "border-red-500" : ""
+                )}
+              />
             )}
           />
           {errors.estimated_duration && (
@@ -347,48 +391,109 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
           )}
         </div>
 
-        {/* Price */}
+        {/* One Way Price */}
         <div className="space-y-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Label
-                  htmlFor="price_usd"
-                  className="text-sm font-medium flex items-center gap-2"
-                >
-                  <DollarSign className="h-4 w-4" />
-                  Price (USD)
-                  <span className="text-red-500 ml-1">*</span>
-                </Label>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Price is automatically calculated based on aircraft price per
-                  hour and estimated duration
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {/* Hidden input for the actual numeric value */}
-          <input
-            type="hidden"
-            {...register("price_usd", {
-              required: "Price is required",
-              min: { value: 1, message: "Price must be greater than 0" },
-              valueAsNumber: true,
-            })}
-            value={price_usd}
+          <Label
+            htmlFor="one_way_price_usd"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <DollarSign className="h-4 w-4" />
+            One Way Price (USD)
+          </Label>
+          <Controller
+            name="one_way_price_usd"
+            control={control}
+            rules={{
+              min: {
+                value: 0,
+                message: "Price must be greater than or equal to 0",
+              },
+            }}
+            render={({ field }) => (
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="one_way_price_usd"
+                  placeholder="0.00"
+                  value={
+                    formattedOneWayPrice
+                      ? formatNumberWithCommas(parseFloat(formattedOneWayPrice))
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, "");
+                    setFormattedOneWayPrice(value);
+                    const numericValue = parseFloat(value);
+                    field.onChange(isNaN(numericValue) ? 0 : numericValue);
+                  }}
+                  className={cn(
+                    "mt-2 pl-7",
+                    errors.one_way_price_usd ? "border-red-500" : ""
+                  )}
+                />
+              </div>
+            )}
           />
-          {/* Display input for formatted value */}
-          <Input
-            id="price_usd_display"
-            placeholder="Automatically calculated"
-            value={formattedPrice}
-            className={cn("mt-2", errors.price_usd ? "border-red-500" : "")}
-            readOnly
+          {errors.one_way_price_usd && (
+            <p className="text-sm text-red-600">
+              {errors.one_way_price_usd.message}
+            </p>
+          )}
+        </div>
+
+        {/* Round Trip Price */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="round_trip_price_usd"
+            className="text-sm font-medium flex items-center gap-2"
+          >
+            <DollarSign className="h-4 w-4" />
+            Round Trip Price (USD)
+          </Label>
+          <Controller
+            name="round_trip_price_usd"
+            control={control}
+            rules={{
+              min: {
+                value: 0,
+                message: "Price must be greater than or equal to 0",
+              },
+            }}
+            render={({ field }) => (
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="round_trip_price_usd"
+                  placeholder="0.00"
+                  value={
+                    formattedRoundTripPrice
+                      ? formatNumberWithCommas(
+                          parseFloat(formattedRoundTripPrice)
+                        )
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, "");
+                    setFormattedRoundTripPrice(value);
+                    const numericValue = parseFloat(value);
+                    field.onChange(isNaN(numericValue) ? 0 : numericValue);
+                  }}
+                  className={cn(
+                    "mt-2 pl-7",
+                    errors.round_trip_price_usd ? "border-red-500" : ""
+                  )}
+                />
+              </div>
+            )}
           />
-          {errors.price_usd && (
-            <p className="text-sm text-red-600">{errors.price_usd.message}</p>
+          {errors.round_trip_price_usd && (
+            <p className="text-sm text-red-600">
+              {errors.round_trip_price_usd.message}
+            </p>
           )}
         </div>
 
@@ -425,103 +530,37 @@ export function FlightForm({ flight, onCancel }: FlightFormProps) {
           )}
         </div>
 
-        {/* Route Type */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="route_type"
-            className="text-sm font-medium flex items-center gap-2"
-          >
-            <Route className="h-4 w-4" />
-            Route Type
-            <span className="text-red-500 ml-1">*</span>
-          </Label>
-          <Controller
-            name="route_type"
-            control={control}
-            rules={{
-              required: "Route type is required",
-            }}
-            render={({ field }) => (
-              <select
-                id="route_type"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
-                value={field.value}
-                onChange={(e) =>
-                  field.onChange(e.target.value as "Charter" | "Seats")
-                }
-              >
-                <option value="Charter">Charter</option>
-                <option value="Seats">Seats</option>
-              </select>
-            )}
-          />
-          {errors.route_type && (
-            <p className="text-sm text-red-600">{errors.route_type.message}</p>
-          )}
-        </div>
-
-        {/* Is Recurring */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="is_recurring"
-            className="text-sm font-medium flex items-center gap-2"
-          >
-            <Repeat className="h-4 w-4" />
-            Recurring Flight
-          </Label>
-          <div className="flex items-center space-x-2 mt-2">
-            <Controller
-              name="is_recurring"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  id="is_recurring"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <Label
-              htmlFor="is_recurring"
-              className="text-sm text-muted-foreground"
-            >
-              This flight repeats on a schedule
-            </Label>
-          </div>
-          {errors.is_recurring && (
-            <p className="text-sm text-red-600">
-              {errors.is_recurring.message}
-            </p>
-          )}
-        </div>
-
         {/* Is empty leg */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="is_empty_leg"
-            className="text-sm font-medium flex items-center gap-2"
-          >
-            Is this an empty leg flight?
-          </Label>
-          <div className="flex items-center space-x-2 mt-2">
-            <Controller
-              name="is_empty_leg"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  id="is_empty_leg"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
+        {isOneWaySeatsEnabled && (
+          <div className="space-y-2">
+            <Label
+              htmlFor="is_empty_leg"
+              className="text-sm font-medium flex items-center gap-2"
+            >
+              Is this an empty leg flight?
+            </Label>
+            <div className="flex items-center space-x-2 mt-2">
+              <Controller
+                name="is_empty_leg"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="is_empty_leg"
+                    checked={field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                    }}
+                  />
+                )}
+              />
+            </div>
+            {errors.is_empty_leg && (
+              <p className="text-sm text-red-600">
+                {errors.is_empty_leg.message}
+              </p>
+            )}
           </div>
-          {errors.is_empty_leg && (
-            <p className="text-sm text-red-600">
-              {errors.is_empty_leg.message}
-            </p>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Actions */}

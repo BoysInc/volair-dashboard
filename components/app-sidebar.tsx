@@ -38,7 +38,7 @@ import Link from "next/link";
 const items = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/home",
     icon: BarChart3,
     description: "Overview & analytics",
   },
@@ -54,12 +54,12 @@ const items = [
     icon: Calendar,
     description: "Flight operations",
   },
-  // {
-  //   title: "Bookings",
-  //   url: "/bookings",
-  //   icon: BookOpen,
-  //   description: "Passenger bookings",
-  // },
+  {
+    title: "Bookings",
+    url: "/bookings",
+    icon: BookOpen,
+    description: "Passenger bookings",
+  },
   {
     title: "Airports",
     url: "/airports",

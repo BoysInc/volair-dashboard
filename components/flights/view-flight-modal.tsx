@@ -19,7 +19,6 @@ import {
   Users,
   Wifi,
   WifiOff,
-  Repeat,
   Navigation,
   Gauge,
   FileText,
@@ -86,12 +85,6 @@ export function ViewFlightModal() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-slate-600">
-                  Flight ID
-                </span>
-                <p className="font-mono text-sm">{viewingFlight.id}</p>
-              </div>
               <div className="space-y-2 space-x-2 flex flex-col">
                 <span className="text-sm font-medium text-slate-600">
                   Status
@@ -102,17 +95,6 @@ export function ViewFlightModal() {
                 >
                   {viewingFlight.status}
                 </Badge>
-              </div>
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-slate-600">
-                  Recurring Flight
-                </span>
-                <div className="flex items-center gap-2">
-                  <Repeat className="h-4 w-4" />
-                  <span>
-                    {viewingFlight.is_recurring === "true" ? "Yes" : "No"}
-                  </span>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -216,37 +198,93 @@ export function ViewFlightModal() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Flight Schedule
+                Flight Schedule & Pricing
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-slate-600">
-                  Departure Date
-                </span>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatDateTime(viewingFlight.departure_date)}</span>
+            <CardContent className="space-y-6">
+              {/* Schedule Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700">
+                      Departure Date
+                    </span>
+                  </div>
+                  <p className="text-slate-900 font-medium ml-10">
+                    {formatDateTime(viewingFlight.departure_date)}
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Clock className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700">
+                      Estimated Duration
+                    </span>
+                  </div>
+                  <p className="text-slate-900 font-medium ml-10">
+                    {viewingFlight.estimated_duration}{" "}
+                    {parseFloat(viewingFlight.estimated_duration) > 1
+                      ? "hrs"
+                      : "hr"}
+                  </p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-slate-600">
-                  Estimated Duration
-                </span>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{viewingFlight.estimated_duration}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-slate-600">
-                  Flight Price
-                </span>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-lg font-bold text-primary">
-                    ${parseFloat(viewingFlight.price_usd).toLocaleString()}
-                  </span>
+
+              {/* Pricing Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                  Pricing Options
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-blue-500 rounded-lg">
+                          <DollarSign className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-blue-900">
+                          One Way
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-900">
+                      ${viewingFlight.one_way_price_usd.toLocaleString()}
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">Per person</p>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-green-500 rounded-lg">
+                          <DollarSign className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-green-900">
+                          Round Trip
+                        </span>
+                      </div>
+                      <Badge variant="secondary" className="text-green-800 ">
+                        Save{" "}
+                        {Math.round(
+                          (1 -
+                            viewingFlight.round_trip_price_usd /
+                              (viewingFlight.one_way_price_usd * 2)) *
+                            100
+                        )}
+                        %
+                      </Badge>
+                    </div>
+                    <div className="text-3xl font-bold text-green-900">
+                      ${viewingFlight.round_trip_price_usd.toLocaleString()}
+                    </div>
+                    <p className="text-xs text-green-700 mt-2">Per person</p>
+                  </div>
                 </div>
               </div>
             </CardContent>

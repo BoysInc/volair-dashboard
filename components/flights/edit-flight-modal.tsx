@@ -1,325 +1,166 @@
 "use client";
 
-import React from "react";
-import { useForm } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { useFlightModalStore } from "@/lib/store/flight-modal-store";
-import { AircraftSelect } from "@/components/forms/aircraft-select";
-import { AirportSelect } from "@/components/forms/airport-select";
-import { FlightStatusSelect } from "@/components/forms/flight-status-select";
-import { EditFlightFormData, FlightStatus } from "@/lib/types/flight";
 import {
-  MapPin,
-  Clock,
-  Calendar,
-  DollarSign,
-  Settings,
-  Route,
-} from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import { updateFlight } from "@/lib/server/flights/flights";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-
-// Helper function to convert string status to FlightStatus enum
-const getFlightStatusFromString = (statusString: string): FlightStatus => {
-  const statusMap: Record<string, FlightStatus> = {
-    Scheduled: FlightStatus.SCHEDULED,
-    Boarding: FlightStatus.BOARDING,
-    Departed: FlightStatus.DEPARTED,
-    "In Flight": FlightStatus.IN_FLIGHT,
-    Arrived: FlightStatus.ARRIVED,
-    Delayed: FlightStatus.DELAYED,
-    Cancelled: FlightStatus.CANCELLED,
-  };
-  return statusMap[statusString] ?? FlightStatus.SCHEDULED;
-};
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { useFlightModalStore } from "@/lib/store/flight-modal-store";
+import { XCircle, Loader2, Settings } from "lucide-react";
+import { format } from "date-fns";
+import { useEditFlightViewModel } from "@/hooks/flight-form/use-edit-flight-view-model";
+import { FlightFormFields } from "./flight-form-fields";
 
 export function EditFlightModal() {
   const { isOpen, isEditMode, editingFlight, closeModal } =
     useFlightModalStore();
 
-  const { token, operator } = useAuth(true);
-
-  const queryClient = useQueryClient();
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<EditFlightFormData>();
-
-  const watchedValues = watch();
-
-  // Initialize form with flight data when modal opens
-  React.useEffect(() => {
-    if (editingFlight && isEditMode) {
-      // Convert departure_date to datetime-local format
-      const departureDate = new Date(editingFlight.departure_date);
-      const formattedDate = departureDate.toISOString().slice(0, 16);
-
-      reset({
-        aircraft_id: editingFlight.aircraft.id,
-        departure_airport_id: editingFlight.departure_airport.id,
-        arrival_airport_id: editingFlight.arrival_airport.id,
-        departure_date: formattedDate,
-        estimated_duration: editingFlight.estimated_duration,
-        status: getFlightStatusFromString(editingFlight.status),
-        price_usd: Number(editingFlight.price_usd),
-        is_recurring: editingFlight.is_recurring === "true",
-      });
-    }
-  }, [editingFlight, isEditMode, reset]);
-
-  const onSubmit = async (data: EditFlightFormData) => {
-    const { data: updatedFlight, error } = await updateFlight(
-      editingFlight?.id || "",
-      data,
-      token,
-      operator?.id || ""
-    );
-
-    if (error) {
-      toast.error(error);
-      return;
-    }
-
-    toast.success("Flight updated successfully");
-
-    queryClient.refetchQueries({ queryKey: ["flights"] });
-
-    closeModal();
-  };
-
-  const handleClose = () => {
-    reset();
-    closeModal();
-  };
+  const vm = useEditFlightViewModel({
+    flight: editingFlight!,
+    isOpen: isOpen && isEditMode,
+    onClose: closeModal,
+  });
 
   if (!editingFlight || !isEditMode) return null;
 
   return (
-    <Dialog open={isOpen && isEditMode} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center gap-2">
-            <Settings className="h-6 w-6" />
-            Edit Flight Schedule
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen && isEditMode} onOpenChange={vm.handleClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Settings className="h-6 w-6" />
+              Edit Flight Schedule
+            </DialogTitle>
+            <DialogDescription>
+              Update flight details, schedule, and pricing information.
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Flight Route Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Route className="h-5 w-5" />
-                Flight Route
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <AircraftSelect
-                  label="Aircraft"
-                  value={watchedValues.aircraft_id}
-                  onChange={(value) => setValue("aircraft_id", value)}
-                  error={errors.aircraft_id?.message}
-                  required
-                  showAllAircraft
-                />
-              </div>
-              <div className="space-y-2">
-                <FlightStatusSelect
-                  label="Flight Status"
-                  value={watchedValues.status}
-                  onChange={(value) => setValue("status", value)}
-                  error={errors.status?.message}
-                  required
-                  showIcon
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <form onSubmit={vm.handleSubmit} className="space-y-6">
+            <FlightFormFields
+              vm={vm}
+              initialAircraftData={editingFlight.aircraft}
+              isEditMode={true}
+            />
 
-          {/* Airport Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Airports
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <AirportSelect
-                  label="Departure Airport"
-                  value={watchedValues.departure_airport_id}
-                  onChange={(value) => setValue("departure_airport_id", value)}
-                  error={errors.departure_airport_id?.message}
-                  required
-                  excludeAirportId={watchedValues.arrival_airport_id}
-                />
-              </div>
-              <div className="space-y-2">
-                <AirportSelect
-                  label="Arrival Airport"
-                  value={watchedValues.arrival_airport_id}
-                  onChange={(value) => setValue("arrival_airport_id", value)}
-                  error={errors.arrival_airport_id?.message}
-                  required
-                  excludeAirportId={watchedValues.departure_airport_id}
-                />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Form Actions */}
+            <div className="flex items-center justify-between pt-6 border-t border-slate-200">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={vm.handleDelete}
+                disabled={vm.isSubmitting || vm.isDeleting}
+                className="gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                Delete Flight
+              </Button>
 
-          {/* Schedule & Pricing */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Schedule & Pricing
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="departure_date"
-                  className="flex items-center gap-2"
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={vm.handleClose}
+                  disabled={vm.isSubmitting || vm.isDeleting}
                 >
-                  <Calendar className="h-4 w-4" />
-                  Departure Date & Time
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="departure_date"
-                  type="datetime-local"
-                  {...register("departure_date", {
-                    required: "Departure date is required",
-                  })}
-                  className={errors.departure_date ? "border-red-500" : ""}
-                />
-                {errors.departure_date && (
-                  <p className="text-sm text-red-500">
-                    {errors.departure_date.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label
-                  htmlFor="estimated_duration"
-                  className="flex items-center gap-2"
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={vm.isSubmitting || vm.isDeleting}
                 >
-                  <Clock className="h-4 w-4" />
-                  Estimated Duration
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="estimated_duration"
-                  placeholder="e.g., 2h 30m"
-                  {...register("estimated_duration", {
-                    required: "Estimated duration is required",
-                  })}
-                  className={errors.estimated_duration ? "border-red-500" : ""}
-                />
-                {errors.estimated_duration && (
-                  <p className="text-sm text-red-500">
-                    {errors.estimated_duration.message}
-                  </p>
-                )}
+                  {vm.isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Update Flight
+                </Button>
               </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              <div className="space-y-2">
-                <Label htmlFor="price_usd" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Flight Price (USD)
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="price_usd"
-                  placeholder="0.00"
-                  {...register("price_usd", {
-                    required: "Price is required",
-                    pattern: {
-                      value: /^\d+(\.\d{1,2})?$/,
-                      message: "Please enter a valid price",
-                    },
-                  })}
-                  className={errors.price_usd ? "border-red-500" : ""}
-                />
-                {errors.price_usd && (
-                  <p className="text-sm text-red-500">
-                    {errors.price_usd.message}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Flight Options */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Flight Options
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <Switch
-                    id="is_recurring"
-                    checked={watchedValues.is_recurring}
-                    onCheckedChange={(checked) =>
-                      setValue("is_recurring", checked)
-                    }
-                  />
-                  <div className="flex-1">
-                    <Label
-                      htmlFor="is_recurring"
-                      className="font-medium cursor-pointer"
-                    >
-                      Recurring Flight
-                    </Label>
-                    <p className="text-sm text-slate-600">
-                      This flight repeats on a regular schedule
-                    </p>
-                  </div>
+      {/* Delete Flight Confirmation Dialog */}
+      <AlertDialog
+        open={vm.showDeleteConfirm}
+        onOpenChange={vm.setShowDeleteConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Delete Flight?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="text-sm">
+                Are you sure you want to delete this flight? This action cannot
+                be undone and will permanently remove the flight from the
+                system.
+              </span>
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <div className="text-sm">
+                  <strong>Flight Details:</strong>
+                  <ul className="mt-1 list-disc list-inside space-y-1">
+                    <li>
+                      Route: {editingFlight?.departure_airport?.name} →{" "}
+                      {editingFlight?.arrival_airport?.name}
+                    </li>
+                    <li>
+                      Date:{" "}
+                      {editingFlight?.departure_date
+                        ? format(new Date(editingFlight.departure_date), "PPP")
+                        : "Not set"}
+                    </li>
+                    <li>Aircraft: {editingFlight?.aircraft?.model_name}</li>
+                  </ul>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-200">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
+              <span className="text-sm font-medium text-red-600">
+                This will permanently delete the flight.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={vm.isDeleting}
+              onClick={() => vm.setShowDeleteConfirm(false)}
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Updating..." : "Update Flight"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+              Keep Flight
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={vm.handleConfirmDelete}
+              disabled={vm.isDeleting}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
+            >
+              {vm.isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Delete Flight
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

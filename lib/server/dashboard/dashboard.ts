@@ -21,14 +21,20 @@ export const getDashboardStats = async (token: string) => {
         })
     )
 
-    if (error) {
+    if (error !== null) {
         return { data: null, error: error.message };
     }
 
     const { data: dashboardData, error: dashboardError } = await tryCatch(data.json());
 
-    if (dashboardError) {
+    if (dashboardError !== null) {
         return { data: null, error: dashboardError.message };
+    }
+
+    console.log(dashboardData);
+
+    if (!data.ok) {
+        return { data: null, error: "Failed to get dashboard stats: " + data.statusText + " " + data.status };
     }
 
     return { data: dashboardData as DashboardStats, error: null };

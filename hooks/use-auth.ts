@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { getMe } from '@/lib/server/auth/me';
 import { toast } from 'sonner';
@@ -16,6 +16,8 @@ export function useAuth(requireAuth: boolean = false) {
 
     const router = useRouter();
 
+    const pathname = usePathname();
+
     const getUser = useCallback(async () => {
         // Don't check token until the store has been hydrated
         if (!hasHydrated) {
@@ -23,16 +25,16 @@ export function useAuth(requireAuth: boolean = false) {
         }
 
         if (!token) {
+            router.push('/');
             logout();
-            router.push('/auth');
             return;
         }
 
         const { user: userData, operator, error: userError } = await getMe(token);
 
         if (userError !== null) {
+            router.push('/');
             logout();
-            router.push('/auth');
             return;
         }
 
@@ -43,10 +45,14 @@ export function useAuth(requireAuth: boolean = false) {
         if (!operator) {
             logout();
             toast.error("You are not authorized to access this application, please contact your administrator");
-            router.push('/auth');
+            router.push('/');
             return;
         }
-    }, [token, logout, router, setAuth, hasHydrated]);
+
+        if (pathname === '/' && isAuthenticated && !isLoading) {
+            router.push('/home');
+        }
+    }, [token, logout, router, setAuth, hasHydrated, pathname, isAuthenticated]);
 
     useEffect(() => {
         getUser();
@@ -54,7 +60,7 @@ export function useAuth(requireAuth: boolean = false) {
 
     const signOut = () => {
         logout();
-        router.push('/auth');
+        router.push('/');
     };
 
     return {

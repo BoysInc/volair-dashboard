@@ -36,6 +36,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { Plane, Wifi, WifiOff, Edit, Save, X } from "lucide-react";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
 import { cn } from "@/lib/utils";
+import { invalidateAndRefetchQueries } from "@/lib/utils";
 
 interface EditAircraftFormFields {
   model_name: string;
@@ -122,15 +123,13 @@ export function EditAircraftModal() {
         description: `${watchedValues.model_name} has been updated successfully.`,
       });
 
-      queryClient.invalidateQueries({
-        queryKey: ["aircrafts"],
-        refetchType: "all",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["aircraft-widgets"],
-        refetchType: "all",
-      });
+      invalidateAndRefetchQueries(queryClient, [
+        "aircrafts",
+        "aircraftWidgets",
+        "dashboard-stats",
+      ]);
 
+      reset();
       closeModal();
     },
     onError: (error) => {
@@ -350,7 +349,6 @@ export function EditAircraftModal() {
                 </Label>
                 <CustomInput
                   id="seating_capacity"
-                  type="number"
                   {...register("seating_capacity", { valueAsNumber: true })}
                   placeholder="8"
                   className={cn(
@@ -374,7 +372,6 @@ export function EditAircraftModal() {
                 </Label>
                 <CustomInput
                   id="range_km"
-                  type="number"
                   {...register("range_km", { valueAsNumber: true })}
                   placeholder="7000"
                   className={cn(
@@ -397,7 +394,6 @@ export function EditAircraftModal() {
                 </Label>
                 <CustomInput
                   id="speed_kph"
-                  type="number"
                   {...register("speed_kph", { valueAsNumber: true })}
                   placeholder="950"
                   className={cn(
@@ -420,7 +416,6 @@ export function EditAircraftModal() {
                 </Label>
                 <CustomInput
                   id="price_per_hour_usd"
-                  type="number"
                   {...register("price_per_hour_usd", { valueAsNumber: true })}
                   placeholder="5000"
                   className={cn(
@@ -485,17 +480,76 @@ export function EditAircraftModal() {
                 Aircraft Images
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6">
-              <MediaUpload
-                value={watchedValues.media_ids}
-                onChange={(mediaIds) =>
-                  setValue("media_ids", mediaIds as string[], {
-                    shouldDirty: true,
-                  })
-                }
-                maxFiles={5}
-                multiple={true}
-              />
+            <CardContent className="pt-6 space-y-6">
+              {/* Existing Images */}
+              {editingAircraft.media && editingAircraft.media.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-slate-700">
+                    Current Images
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {editingAircraft.media
+                      .filter((media) =>
+                        watchedValues.media_ids.includes(media.id)
+                      )
+                      .map((media) => (
+                        <div
+                          key={media.id}
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
+                        >
+                          <img
+                            src={media.url}
+                            alt={`Aircraft image ${media.order}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8"
+                              onClick={() => {
+                                const updatedMediaIds =
+                                  watchedValues.media_ids.filter(
+                                    (id) => id !== media.id
+                                  );
+                                setValue("media_ids", updatedMediaIds, {
+                                  shouldDirty: true,
+                                });
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Media Upload Component */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700">
+                  {editingAircraft.media && editingAircraft.media.length > 0
+                    ? "Add More Images"
+                    : "Upload Images"}
+                </Label>
+                <MediaUpload
+                  value={watchedValues.media_ids}
+                  onChange={(mediaIds) =>
+                    setValue("media_ids", mediaIds as string[], {
+                      shouldDirty: true,
+                    })
+                  }
+                  maxFiles={5}
+                  multiple={true}
+                />
+              </div>
             </CardContent>
           </Card>
 

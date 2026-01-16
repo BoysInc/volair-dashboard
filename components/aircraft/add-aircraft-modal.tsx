@@ -34,7 +34,8 @@ import { AIRCRAFT_MANUFACTURERS } from "@/lib/types/aircraft";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Plane, Wifi, WifiOff } from "lucide-react";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
-import {useAuthStore} from "@/lib/store/auth-store";
+import { useAuthStore } from "@/lib/store/auth-store";
+import { invalidateAndRefetchQueries } from "@/lib/utils";
 
 export function AddAircraftModal() {
   const { token } = useAuth();
@@ -68,13 +69,17 @@ export function AddAircraftModal() {
   const wifiAvailable = watch("wifi_available");
   const operator = useAuthStore((state) => state.operator);
   const createAircraftMutation = useMutation({
-    mutationFn: (data: AddAircraftFormData) => createAircraft(token, data, operator?.id!),
+    mutationFn: (data: AddAircraftFormData) =>
+      createAircraft(token, data, operator?.id!),
     onSuccess: (result) => {
       if (result.error) {
         toast.error(result.error);
       } else {
         toast.success("Aircraft added successfully");
-        queryClient.refetchQueries({ queryKey: ["aircrafts"], exact: true });
+        invalidateAndRefetchQueries(queryClient, [
+          "dashboard-stats",
+          "aircrafts",
+        ]);
         reset();
         closeModal();
       }

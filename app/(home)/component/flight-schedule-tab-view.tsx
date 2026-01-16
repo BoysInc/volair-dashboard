@@ -31,6 +31,7 @@ import { ViewFlightModal } from "@/components/flights/view-flight-modal";
 import { EditFlightModal } from "@/components/flights/edit-flight-modal";
 import { CreateFlightModal } from "@/components/flights/create-flight-modal";
 import Link from "next/link";
+import { useFlightsStore } from "@/lib/store/flights-store";
 
 // Loading skeleton for flight cards
 function FlightCardSkeleton() {
@@ -75,10 +76,27 @@ function FlightCardSkeleton() {
 const FlightScheduleTabView = () => {
   const { token, operator } = useAuth(true);
   const { openViewModal, openEditModal } = useFlightModalStore();
+  const setFlights = useFlightsStore((state) => state.setFlights);
 
   const { data: flights, isLoading } = useQuery({
     queryKey: ["flights"],
-    queryFn: () => getOperatorFlights(operator?.id || "", token || ""),
+    queryFn: async () => {
+      const { data, error } = await getOperatorFlights(
+        operator?.id || "",
+        token || ""
+      );
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      // Sync to Zustand store
+      if (data) {
+        setFlights(data);
+      }
+
+      return data;
+    },
     enabled: !!token && !!operator?.id,
   });
 
@@ -107,7 +125,7 @@ const FlightScheduleTabView = () => {
         {/* Flight Cards */}
         {!isLoading && (
           <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
-            {flights?.data?.slice(0, 5).map((flight) => (
+            {flights?.slice(0, 4).map((flight) => (
               <Card
                 key={flight.id}
                 className="hover:shadow-md transition-shadow"
@@ -173,15 +191,13 @@ const FlightScheduleTabView = () => {
                   </div>
 
                   {/* Time and Details */}
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          Departure:
-                        </span>
-                      </div>
-                      <div className="font-medium">
+                  <div className="space-y-4 pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Departure:
+                      </span>
+                      <span className="font-medium">
                         {new Date(flight.departure_date).toLocaleTimeString(
                           "en-US",
                           {
@@ -189,14 +205,26 @@ const FlightScheduleTabView = () => {
                             minute: "2-digit",
                           }
                         )}
-                      </div>
+                      </span>
                     </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">
-                        Price:
+
+                    {/* Pricing */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          One Way
+                        </div>
+                        <div className="font-semibold text-lg">
+                          ${flight.one_way_price_usd.toLocaleString()}
+                        </div>
                       </div>
-                      <div className="font-medium text-lg">
-                        ${flight.price_usd.toLocaleString()}
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Round Trip
+                        </div>
+                        <div className="font-semibold text-lg">
+                          ${flight.round_trip_price_usd.toLocaleString()}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -207,11 +235,11 @@ const FlightScheduleTabView = () => {
         )}
 
         {/* Show View All CTA if there are more than 5 flights */}
-        {!isLoading && flights?.data && flights.data.length > 5 && (
+        {!isLoading && flights && flights.length > 4 && (
           <div className="flex justify-center pt-4">
             <Link href="/flights">
               <Button variant="outline" className="gap-2">
-                View All Flights ({flights.data.length})
+                View All Flights ({flights.length})
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -219,7 +247,7 @@ const FlightScheduleTabView = () => {
         )}
 
         {/* Empty state */}
-        {!isLoading && flights?.data && flights.data.length === 0 && (
+        {!isLoading && flights && flights.length === 0 && (
           <Card className="p-6">
             <div className="text-center space-y-2">
               <Plane className="h-8 w-8 mx-auto text-muted-foreground" />

@@ -45,7 +45,7 @@ export function OperatorOnboardingForm({
       const { error } = await tryCatch(
         Promise.resolve().then(() => {
           localStorage.setItem("operatorData", JSON.stringify(data));
-          router.push("/");
+          router.push("/home");
         })
       );
       if (error) {

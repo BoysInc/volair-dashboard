@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,17 +12,9 @@ import {
 import { CustomInput } from "@/components/ui/custom-input";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
-import {
-  signInSchema,
-  signUpSchema,
-  SignUpFormData,
-} from "@/lib/validations/auth";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import { login, signup } from "@/lib/server/auth/login";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/store/auth-store";
-import { toast } from "sonner";
-import { tryCatch } from "@/lib/utils";
+import { useAuthViewModel } from "@/hooks/use-auth-view-model";
+import { CountrySelect } from "@/components/forms/country-select";
 
 const googleClientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -34,134 +24,32 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
-  const { setAuth, setLoading, isLoading } = useAuthStore();
-  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
-
-  const isSignUp = mode === "signup";
-
-  const router = useRouter();
+  const {
+    form,
+    isSignUp,
+    isLoading,
+    isGoogleLoading,
+    isAnyLoading,
+    handleSubmit,
+    handleGoogleLogin,
+    handleGoogleError,
+  } = useAuthViewModel(mode);
 
   const {
     register,
-    handleSubmit,
     formState: { errors },
-    reset,
-  } = useForm<SignUpFormData>({
-    resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
-  });
-
-  const handleFormSubmit = async (data: SignUpFormData) => {
-    setLoading(true);
-
-    if (isSignUp) {
-      const { error: signupError, validationErrors } = await signup(data);
-
-      if (signupError) {
-        // console.log("Signup error:", signupError);
-        toast.error(signupError);
-
-        // Handle validation errors
-        if (validationErrors) {
-          // Display a generic message for validation errors
-          toast.error("Please check your input and try again");
-        }
-
-        setLoading(false);
-        return;
-      }
-
-      // console.log("Signup data:", signupData);
-      toast.success("Account created successfully!");
-      setLoading(false);
-      router.push("/");
-    } else {
-      const {
-        data: loginData,
-        error: loginError,
-        validationErrors,
-      } = await login(data);
-
-      if (loginError) {
-        toast.error(loginError);
-
-        // Handle validation errors
-        if (validationErrors) {
-          toast.error("Please check your input and try again");
-        }
-
-        setLoading(false);
-        return;
-      }
-
-      if (loginData) {
-        // Store auth data in Zustand store
-        setAuth({ ...loginData.data, operator: null });
-        toast.success(loginData.message || "Logged in successfully!");
-        router.push("/");
-      }
-
-      setLoading(false);
-    }
-  };
-
-  const handleModeToggle = () => {
-    reset();
-    onToggleMode();
-  };
-
-  const handleGoogleLogin = async (credentialResponse: any) => {
-    setIsGoogleLoading(true);
-
-    const { data: res, error: fetchError } = await tryCatch(
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/auth/google/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
-      })
-    );
-
-    if (fetchError) {
-      toast.error("Failed to connect to Google authentication");
-      setIsGoogleLoading(false);
-      return;
-    }
-
-    const { data: responseData, error: jsonError } = await tryCatch(res.json());
-
-    if (jsonError) {
-      toast.error("Invalid response from Google authentication");
-      setIsGoogleLoading(false);
-      return;
-    }
-
-    if (responseData) {
-      setAuth({
-        token: responseData.data.token,
-        user: responseData.data.user,
-        operator: null,
-      });
-      toast.success("Logged in sucessfully!");
-      router.push("/");
-    } else {
-      toast.error("Google login failed");
-    }
-
-    setIsGoogleLoading(false);
-  };
+  } = form;
 
   return (
     <GoogleOAuthProvider clientId={googleClientID!}>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">
-            {isSignUp ? "Create an account" : "Welcome back"}
+            {isSignUp ? "Register Your Operator" : "Welcome back"}
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp
-              ? "Enter your details to create your account"
+              ? "Enter your operator details to get started"
               : "Enter your credentials to access your account"}
           </CardDescription>
         </CardHeader>
@@ -174,10 +62,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           ) : (
             <GoogleLogin
               onSuccess={handleGoogleLogin}
-              onError={() => {
-                toast.error("Google login failed");
-                setIsGoogleLoading(false);
-              }}
+              onError={handleGoogleError}
             />
           )}
 
@@ -192,16 +77,16 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <CustomInput
                 id="name"
-                label="Full Name"
+                label="Operator Name"
                 type="text"
-                placeholder="John Doe"
-                registration={register("name")}
-                error={errors.name?.message}
-                disabled={isLoading || isGoogleLoading}
+                placeholder="ABC Aviation"
+                registration={register("name" as any)}
+                error={(errors as any).name?.message}
+                disabled={isAnyLoading}
                 required
               />
             )}
@@ -213,56 +98,67 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
               placeholder="john@example.com"
               registration={register("email")}
               error={errors.email?.message}
-              disabled={isLoading || isGoogleLoading}
+              disabled={isAnyLoading}
               required
             />
 
             {isSignUp && (
-              <CustomInput
-                id="phone"
-                label="Phone"
-                type="tel"
-                placeholder="Enter your phone number"
-                registration={register("phone")}
-                error={errors.phone?.message}
-                disabled={isLoading || isGoogleLoading}
-                required
-              />
+              <>
+                <CustomInput
+                  id="phone"
+                  label="Phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  registration={register("phone" as any)}
+                  error={(errors as any).phone?.message}
+                  disabled={isAnyLoading}
+                  required
+                />
+
+                <CountrySelect
+                  label="Country"
+                  value={form.watch("country" as any)}
+                  onChange={(value) => form.setValue("country" as any, value)}
+                  error={(errors as any).country?.message}
+                  required
+                />
+
+                <CustomInput
+                  id="license_number"
+                  label="License Number"
+                  type="text"
+                  placeholder="Enter your operator license number"
+                  registration={register("license_number" as any)}
+                  error={(errors as any).license_number?.message}
+                  disabled={isAnyLoading}
+                  required
+                />
+              </>
             )}
 
-            <CustomInput
-              id="password"
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              registration={register("password")}
-              error={errors.password?.message}
-              disabled={isLoading || isGoogleLoading}
-              showPasswordToggle
-              required
-            />
-
-            {isSignUp && (
+            {!isSignUp && (
               <CustomInput
-                id="confirmPassword"
-                label="Confirm Password"
+                id="password"
+                label="Password"
                 type="password"
-                placeholder="Confirm your password"
-                registration={register("confirmPassword")}
-                error={errors.confirmPassword?.message}
-                disabled={isLoading || isGoogleLoading}
+                placeholder="Enter your password"
+                registration={register("password" as any)}
+                error={(errors as any).password?.message}
+                disabled={isAnyLoading}
                 showPasswordToggle
                 required
               />
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || isGoogleLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isAnyLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Create Account" : "Sign In"}
+              {isLoading
+                ? isSignUp
+                  ? "Registering Operator..."
+                  : "Signing In..."
+                : isSignUp
+                ? "Register Operator"
+                : "Sign In"}
             </Button>
           </form>
 
@@ -272,9 +168,9 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
             </span>{" "}
             <button
               type="button"
-              onClick={handleModeToggle}
+              onClick={onToggleMode}
               className="text-primary underline-offset-4 hover:underline"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isAnyLoading}
             >
               {isSignUp ? "Sign in" : "Sign up"}
             </button>

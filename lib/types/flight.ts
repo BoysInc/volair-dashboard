@@ -35,7 +35,6 @@ export interface Flight {
     status: string;
     price_usd: number;
     is_empty_leg: boolean;
-    is_recurring: boolean;
 }
 
 export interface FlightWithDetails extends Flight {
@@ -52,9 +51,10 @@ export interface EditFlightFormData {
     departure_time: string;
     arrival_time: string;
     estimated_duration: string;
-    price_usd: number;
-    status: FlightStatus;
-    is_recurring: boolean;
+    one_way_price_usd: number;
+    round_trip_price_usd: number;
+    status: "Active" | "Inactive";
+    is_empty_leg: boolean;
 }
 
 export interface FlightFormData {
@@ -67,10 +67,11 @@ export interface FlightFormData {
     estimated_duration: string;
     price_usd: number;
     status: string;
-    is_recurring: boolean;
     is_empty_leg: boolean;
     route_type: "Charter" | "Seats";
     aircraft: Aircraft;
+    one_way_price_usd: number;
+    round_trip_price_usd: number;
 }
 
 export enum FlightStatus {
@@ -116,7 +117,7 @@ export interface FlightMedia {
     order: number;
 }
 
-export interface FlightAircraft {
+export interface FlightAircraft extends Aircraft {
     id: string;
     model_name: string;
     manufacturer: string;
@@ -127,7 +128,7 @@ export interface FlightAircraft {
     price_per_hour_usd: number;
     wifi_available: boolean;
     image_url: string;
-    status: string;
+    status: AircraftStatus;
     media: FlightMedia[];
 }
 
@@ -150,8 +151,11 @@ export interface OperatorFlight {
     estimated_duration: string;
     status: string;
     price_usd: string;
-    is_recurring: string; // "true" or "false" as string
     departure_date: string;
+    route_type?: "Charter" | "Seats";
+    is_empty_leg?: boolean;
+    one_way_price_usd: number;
+    round_trip_price_usd: number;
 }
 
 export type GetOperatorFlightsResponse = OperatorFlight[];

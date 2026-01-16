@@ -30,6 +30,9 @@ export const getOperatorAircrafts = async (token: string | null, operatorID: str
         return { data: null, error: aircraftsError.message };
     }
 
+    console.log("Aircrafts from server: ", aircrafts);
+
+
     return { data: aircrafts?.data as Aircraft[], error: null };
 }
 

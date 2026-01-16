@@ -29,6 +29,7 @@ import {
   uploadMultipleMedia,
   MediaUploadResponse,
 } from "@/lib/server/media/media";
+import { ImageCropModal } from "@/components/ui/image-crop-modal";
 
 interface MediaUploadProps {
   // React Hook Form integration
@@ -104,6 +105,10 @@ export const MediaUpload = React.forwardRef<HTMLDivElement, MediaUploadProps>(
     );
     const [isDragActive, setIsDragActive] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Crop modal state
+    const [cropModalOpen, setCropModalOpen] = React.useState(false);
+    const [imagesToCrop, setImagesToCrop] = React.useState<File[]>([]);
 
     // Convert value to array for easier handling
     const currentValue = React.useMemo(() => {
@@ -231,17 +236,48 @@ export const MediaUpload = React.forwardRef<HTMLDivElement, MediaUploadProps>(
 
       // Check file limits
       if (!multiple && validFiles.length > 1) {
-        toast.error("Only one file is allowed");
+        toast.error("Aircraft images cannot be more than one file");
         return;
       }
 
       if (multiple && currentValue.length + validFiles.length > maxFiles) {
-        toast.error(`Cannot upload more than ${maxFiles} files`);
+        toast.error(`Aircraft images cannot be more than ${maxFiles} files`);
         return;
       }
 
+      // Separate image files from non-image files
+      const imageFiles = validFiles.filter((file) =>
+        file.type.startsWith("image/")
+      );
+      const nonImageFiles = validFiles.filter(
+        (file) => !file.type.startsWith("image/")
+      );
+
+      // If there are image files, open crop modal first
+      if (imageFiles.length > 0) {
+        setImagesToCrop(imageFiles);
+        setCropModalOpen(true);
+
+        // If there are non-image files, upload them directly
+        if (nonImageFiles.length > 0) {
+          proceedWithUpload(nonImageFiles);
+        }
+      } else if (nonImageFiles.length > 0) {
+        // Only non-image files, upload directly
+        proceedWithUpload(nonImageFiles);
+      }
+    };
+
+    const handleCropComplete = (croppedImages: File[]) => {
+      // Upload the cropped images
+      proceedWithUpload(croppedImages);
+      setCropModalOpen(false);
+      setImagesToCrop([]);
+    };
+
+    const proceedWithUpload = (files: File[]) => {
       // Add to uploaded files state
-      const newUploadedFiles = validFiles.map((file) => ({
+      const newUploadedFiles = files.map((file) => ({
         id: Math.random().toString(36).substr(2, 9),
         file,
         url: URL.createObjectURL(file),
@@ -253,7 +289,7 @@ export const MediaUpload = React.forwardRef<HTMLDivElement, MediaUploadProps>(
       setUploadedFiles((prev) => [...prev, ...newUploadedFiles]);
 
       // Start upload
-      uploadMutation.mutate(validFiles);
+      uploadMutation.mutate(files);
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -527,6 +563,14 @@ export const MediaUpload = React.forwardRef<HTMLDivElement, MediaUploadProps>(
         {error && (
           <p className="text-sm text-destructive font-medium">{error}</p>
         )}
+
+        {/* Image Crop Modal */}
+        <ImageCropModal
+          open={cropModalOpen}
+          onOpenChange={setCropModalOpen}
+          images={imagesToCrop}
+          onCropComplete={handleCropComplete}
+        />
       </div>
     );
   }

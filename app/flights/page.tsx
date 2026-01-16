@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { FlightsTable } from "@/components/flights/flights-table";
 import {
@@ -12,84 +11,45 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Calendar, Plane } from "lucide-react";
-import { OperatorFlight } from "@/lib/types/flight";
 import { CreateFlightModal } from "@/components/flights/create-flight-modal";
-import { UpdateFlightModal } from "@/components/flights/update-flight-modal";
+import { EditFlightModal } from "@/components/flights/edit-flight-modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthStore } from "@/lib/store/auth-store";
-import { Skeleton, TableSkeleton } from "@/components/ui/loading-state";
+import { useFlightModalStore } from "@/lib/store/flight-modal-store";
+import { useFlightsStore } from "@/lib/store/flights-store";
+import { TableSkeleton } from "@/components/ui/loading-state";
 import { toast } from "sonner";
 import {
   getFlightWidgets,
   getOperatorFlights,
-  getFlightById,
 } from "@/lib/server/flights/flights";
-
-// Custom StatCardSkeleton component for the stats cards
-function StatCardSkeleton() {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <Skeleton className="h-4 w-[100px]" />
-        <Skeleton className="h-4 w-4 rounded-full" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-8 w-[60px] mb-2" />
-        <Skeleton className="h-3 w-[120px]" />
-      </CardContent>
-    </Card>
-  );
-}
+import { invalidateAndRefetchQueries } from "@/lib/utils";
+import { StatCardSkeleton } from "@/components/flights/skeleton/StatCardSkeleton";
+import { ViewFlightModal } from "@/components/flights/view-flight-modal";
+import { usePendingFlightsStore } from "@/lib/store/pending-flights-store";
+import { PendingFlightsNotice } from "@/components/flights/pending-flights-notice";
 
 // Component that uses searchParams - needs to be wrapped in Suspense
 function FlightsContent() {
-  const [editingFlight, setEditingFlight] = useState<OperatorFlight | null>(
-    null
-  );
-  const searchParams = useSearchParams();
-  // Ref to track if we're currently editing a flight to avoid dependency issues
-  const editingFlightIdRef = useRef<string | null>(null);
-
   const { token } = useAuth(true);
   const operator = useAuthStore((state) => state.operator);
   const queryClient = useQueryClient();
 
-  // Function to fetch a single flight by ID
-  const fetchFlightById = async (flightId: string) => {
-    const { data, error } = await getFlightById(
-      flightId,
-      token,
-      operator?.id || ""
-    );
+  // Get editing flight from Zustand store
+  const editingFlight = useFlightModalStore((state) => state.editingFlight);
+  const isEditMode = useFlightModalStore((state) => state.isEditMode);
+  const closeModal = useFlightModalStore((state) => state.closeModal);
 
-    if (error !== null) {
-      toast.error("Failed to fetch flight");
-      return null;
-    }
-
-    return data;
-  };
-
-  // Check for flightId in URL and open edit modal if present
-  useEffect(() => {
-    const flightId = searchParams.get("flightId");
-
-    if (flightId && token && operator) {
-      // Only fetch if we're not already editing this flight
-      if (editingFlightIdRef.current !== flightId) {
-        fetchFlightById(flightId).then((data) => {
-          if (data) {
-            setEditingFlight(data);
-            editingFlightIdRef.current = data.id;
-          }
-        });
-      }
-    } else if (!flightId && editingFlightIdRef.current) {
-      // Close the modal if flightId is removed from URL
-      setEditingFlight(null);
-    }
-  }, [searchParams, token, operator]);
+  // Pending flights store
+  const pendingFlightIds = usePendingFlightsStore(
+    (state) => state.pendingFlightIds
+  );
+  const aircraftId = usePendingFlightsStore((state) => state.aircraftId);
+  const clearPendingFlights = usePendingFlightsStore(
+    (state) => state.clearPendingFlights
+  );
+  const getFlightById = useFlightsStore((state) => state.getFlightById);
 
   // Delete flight mutation
   const deleteMutation = useMutation({
@@ -116,11 +76,20 @@ function FlightsContent() {
 
       return response.json();
     },
-    onSuccess: async () => {
+    onSuccess: async (_, flightId) => {
       // Invalidate queries to refresh the data
-      await queryClient.refetchQueries({ queryKey: ["flights"] });
-      await queryClient.refetchQueries({ queryKey: ["flightWidgets"] });
+      invalidateAndRefetchQueries(queryClient, ["flights", "flightWidgets"]);
       toast.success("Flight deleted successfully!");
+
+      // Check if this was a pending flight and clear if all are resolved
+      if (pendingFlightIds.includes(flightId)) {
+        const remainingPendingFlights = pendingFlightIds.filter(
+          (id) => id !== flightId
+        );
+        if (remainingPendingFlights.length === 0) {
+          clearPendingFlights();
+        }
+      }
     },
     onError: (error) => {
       console.error("Error deleting flight:", error);
@@ -140,6 +109,9 @@ function FlightsContent() {
     enabled: !!token && !!operator,
   });
 
+  // Zustand store
+  const setFlights = useFlightsStore((state) => state.setFlights);
+
   const { data: flights, isLoading } = useQuery({
     queryKey: ["flights"],
     queryFn: async () => {
@@ -151,10 +123,44 @@ function FlightsContent() {
       if (error !== null) {
         throw new Error("Failed to fetch flights");
       }
+
+      // Sync to Zustand store
+      if (data) {
+        setFlights(data);
+      }
+
       return data;
     },
     enabled: !!token && !!operator,
+    refetchOnMount: true,
   });
+
+  // Check if pending flights have been resolved (aircraft changed or deleted)
+  useEffect(() => {
+    if (pendingFlightIds.length === 0 || !flights || !aircraftId) {
+      return;
+    }
+
+    // Check if all pending flights have been resolved
+    const unresolvedFlights = pendingFlightIds.filter((flightId) => {
+      const flight = getFlightById(flightId);
+      // Flight is resolved if it doesn't exist (deleted) or aircraft has changed
+      return flight && flight.aircraft.id === aircraftId;
+    });
+
+    // If all flights are resolved, clear the pending state
+    if (unresolvedFlights.length === 0) {
+      clearPendingFlights();
+    }
+  }, [flights, pendingFlightIds, aircraftId, getFlightById, clearPendingFlights]);
+
+  const handleDismissNotice = () => {
+    clearPendingFlights();
+  };
+
+  const handleDeleteFlight = (flightId: string) => {
+    deleteMutation.mutate(flightId);
+  };
 
   return (
     <DashboardLayout
@@ -171,6 +177,16 @@ function FlightsContent() {
         </div>
         <CreateFlightModal />
       </div>
+
+      {/* Pending Flights Notice */}
+      {pendingFlightIds.length > 0 && (
+        <PendingFlightsNotice
+          flightIds={pendingFlightIds}
+          aircraftId={aircraftId}
+          onDismiss={handleDismissNotice}
+          onDelete={handleDeleteFlight}
+        />
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -247,7 +263,6 @@ function FlightsContent() {
           ) : flights ? (
             <FlightsTable
               flights={flights}
-              onEdit={setEditingFlight}
               onDelete={(flightId) => deleteMutation.mutate(flightId)}
             />
           ) : (
@@ -257,13 +272,8 @@ function FlightsContent() {
       </Card>
 
       {/* Edit Flight Modal */}
-      {editingFlight && (
-        <UpdateFlightModal
-          flight={editingFlight}
-          open={!!editingFlight}
-          onOpenChange={(open) => !open && setEditingFlight(null)}
-        />
-      )}
+      <EditFlightModal />
+      <ViewFlightModal />
     </DashboardLayout>
   );
 }

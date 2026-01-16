@@ -9,6 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Airport } from "@/lib/types/flight";
-import {flexRender, PaginationState} from "@tanstack/react-table";
-import {Table as ReactTable} from "@tanstack/react-table";
 import {
   Pagination,
   PaginationContent,
@@ -30,23 +36,31 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { MoreHorizontal, Edit, Trash2, MapPin } from "lucide-react";
+import { Airport } from "@/lib/types/flight";
 
 interface AirportsTableProps {
+  airports: Airport[];
+  onEdit: (airport: Airport) => void;
   onDelete: (airportId: string) => void;
-  table: ReactTable<Airport>
-  pagination: PaginationState,
-  setPagination: (pagination: PaginationState) => void,
-  meta: any,
+  pagination: {
+    pageIndex: number;
+    pageSize: number;
+  };
+  setPagination: (pagination: { pageIndex: number; pageSize: number }) => void;
+  meta: any;
 }
 
 export function AirportsTable({
+  airports,
+  onEdit,
   onDelete,
-    table,
-    pagination,
-    setPagination,
-    meta,
+  pagination,
+  setPagination,
+  meta,
 }: AirportsTableProps) {
   const [deleteAirportId, setDeleteAirportId] = useState<string | null>(null);
+  
   const handleDeleteConfirm = () => {
     if (deleteAirportId) {
       onDelete(deleteAirportId);
@@ -58,43 +72,69 @@ export function AirportsTable({
     <>
       <Table>
         <TableHeader>
-          {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                    <TableHead key={header.id}>
-                      {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                      )}
-                    </TableHead>
-                ))}
-              </TableRow>
-          ))}
+          <TableRow>
+            <TableHead>Airport Name</TableHead>
+            <TableHead>IATA Code</TableHead>
+            <TableHead>City</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.map(row => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                ))}
-              </TableRow>
+          {airports?.map((airport) => (
+            <TableRow key={airport.id}>
+              <TableCell>
+                <div className="font-semibold">{airport.name}</div>
+              </TableCell>
+              <TableCell>
+                <span className="font-mono text-sm font-semibold">
+                  {airport.iata_code}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">{airport.city}</div>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(airport)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setDeleteAirportId(airport.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
           ))}
         </TableBody>
       </Table>
 
-      {/*{airports.length === 0 && (*/}
-      {/*  <div className="text-center py-8">*/}
-      {/*    <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />*/}
-      {/*    <h3 className="mt-2 text-sm font-semibold text-gray-900">*/}
-      {/*      No airports found*/}
-      {/*    </h3>*/}
-      {/*    <p className="mt-1 text-sm text-muted-foreground">*/}
-      {/*      Get started by adding your first airport.*/}
-      {/*    </p>*/}
-      {/*  </div>*/}
-      {/*)}*/}
+      {airports.length === 0 && (
+        <div className="text-center py-8">
+          <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">
+            No airports found
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Get started by adding your first airport.
+          </p>
+        </div>
+      )}
+
       <div className="mt-4">
         <Pagination>
           <PaginationContent>
@@ -131,6 +171,7 @@ export function AirportsTable({
           </PaginationContent>
         </Pagination>
       </div>
+
       <AlertDialog
         open={!!deleteAirportId}
         onOpenChange={() => setDeleteAirportId(null)}

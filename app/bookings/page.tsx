@@ -1,326 +1,206 @@
 "use client";
 
-import * as React from "react";
+import { Suspense } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { BookingsTable } from "@/components/bookings/bookings-table";
-import { BookingDetailsModal } from "@/components/bookings/booking-details-modal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import {
-  DollarSign,
-  Users,
-  Calendar,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Plus,
-} from "lucide-react";
-import { BookingWithDetails } from "@/lib/types/database";
-import { BookingStatus } from "@/lib/constants/booking-status";
-import { mockBookings } from "@/lib/data/mock-bookings";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Calendar, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { TableSkeleton } from "@/components/ui/loading-state";
+import { BookingDetailsModal } from "@/components/bookings/booking-details-modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useBookingsViewModel } from "@/hooks/use-bookings-view-model";
+import { ErrorState } from "@/components/ui/error-state";
 
-export default function BookingsPage() {
-  const [bookings, setBookings] =
-    React.useState<BookingWithDetails[]>(mockBookings);
-  const [selectedBooking, setSelectedBooking] =
-    React.useState<BookingWithDetails | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
-
-  // Calculate statistics
-  const stats = React.useMemo(() => {
-    const totalBookings = bookings.length;
-    const totalRevenue = bookings.reduce(
-      (sum, booking) => sum + booking.total_price,
-      0
-    );
-    const totalPassengers = bookings.reduce(
-      (sum, booking) => sum + booking.passenger_count,
-      0
-    );
-
-    const statusCounts = bookings.reduce((acc, booking) => {
-      acc[booking.status] = (acc[booking.status] || 0) + 1;
-      return acc;
-    }, {} as Record<number, number>);
-
-    const pendingBookings = statusCounts[BookingStatus.PENDING] || 0;
-    const confirmedBookings = statusCounts[BookingStatus.CONFIRMED] || 0;
-    const completedBookings = statusCounts[BookingStatus.COMPLETED] || 0;
-    const cancelledBookings = statusCounts[BookingStatus.CANCELLED] || 0;
-
-    return {
-      totalBookings,
-      totalRevenue,
-      totalPassengers,
-      pendingBookings,
-      confirmedBookings,
-      completedBookings,
-      cancelledBookings,
-    };
-  }, [bookings]);
-
-  const handleViewBooking = (booking: BookingWithDetails) => {
-    setSelectedBooking(booking);
-    setIsDetailsModalOpen(true);
-  };
-
-  const handleEditBooking = (booking: BookingWithDetails) => {
-    // TODO: Implement edit booking functionality
-    toast.info("Editing booking");
-  };
-
-  const handleDeleteBooking = async (bookingId: string) => {
-    if (window.confirm("Are you sure you want to delete this booking?")) {
-      setIsLoading(true);
-      try {
-        // TODO: Implement actual delete API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setBookings((prev) => prev.filter((b) => b.id !== bookingId));
-      } catch (error) {
-        toast.error("Something went wrong while deleting the booking");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleUpdateBookingStatus = async (
-    bookingId: string,
-    status: BookingStatus
-  ) => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement actual update API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setBookings((prev) =>
-        prev.map((booking) =>
-          booking.id === bookingId ? { ...booking, status } : booking
-        )
-      );
-    } catch (error) {
-      console.error("Error updating booking status:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+// Component that uses searchParams - needs to be wrapped in Suspense
+function BookingsContent() {
+  // Use the view model hook for MVVM architecture
+  const {
+    bookings,
+    statistics,
+    isLoading,
+    error,
+    viewingBooking,
+    isViewMode,
+    isLoadingBookingWidgets,
+    bookingWidgetsError,
+    handleViewBooking,
+    handleCloseModal,
+  } = useBookingsViewModel();
 
   return (
     <DashboardLayout
-      title="Bookings Management"
-      description="Manage flight bookings and passenger details"
+      title="Bookings"
+      description="Manage customer bookings and reservations"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Bookings Management
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Bookings</h1>
           <p className="text-muted-foreground">
-            Manage flight bookings and passenger details
+            Manage customer bookings and reservations
           </p>
         </div>
       </div>
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Bookings
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBookings}</div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3" />
-              +12% from last month
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(stats.totalRevenue)}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3" />
-              +8% from last month
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        {isLoadingBookingWidgets ? (
+          <>
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </>
+        ) : bookingWidgetsError ? (
+          <ErrorState message={bookingWidgetsError.message} />
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Bookings
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {statistics.totalBookings}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  All time bookings
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Passengers
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPassengers}</div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3" />
-              +15% from last month
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {statistics.pendingBookings}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Awaiting confirmation
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Bookings
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingBookings}</div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <AlertCircle className="h-3 w-3" />
-              Requires attention
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {statistics.confirmedBookings}
+                </div>
+                <p className="text-xs text-muted-foreground">Active bookings</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  ${statistics.totalRevenue.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total operator revenue
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      {/* Status Overview */}
+      {/* Bookings Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Booking Status Overview</CardTitle>
+          <CardTitle>All Bookings</CardTitle>
+          <CardDescription>View and manage customer bookings</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <div>
-                <div className="text-sm font-medium">Confirmed</div>
-                <div className="text-2xl font-bold">
-                  {stats.confirmedBookings}
-                </div>
-              </div>
+          {isLoading ? (
+            <TableSkeleton rows={5} />
+          ) : error ? (
+            <ErrorState message={error.message} />
+          ) : bookings.length > 0 ? (
+            <BookingsTable
+              bookings={bookings}
+              onViewBooking={handleViewBooking}
+            />
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No bookings available
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-500" />
-              <div>
-                <div className="text-sm font-medium">Pending</div>
-                <div className="text-2xl font-bold">
-                  {stats.pendingBookings}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-blue-500" />
-              <div>
-                <div className="text-sm font-medium">Completed</div>
-                <div className="text-2xl font-bold">
-                  {stats.completedBookings}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-500" />
-              <div>
-                <div className="text-sm font-medium">Cancelled</div>
-                <div className="text-2xl font-bold">
-                  {stats.cancelledBookings}
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Bookings Table */}
-      <Tabs defaultValue="all" className="w-full">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="all">All Bookings</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Booking
-          </Button>
-        </div>
-
-        <TabsContent value="all" className="space-y-4">
-          <BookingsTable
-            bookings={bookings}
-            onViewBooking={handleViewBooking}
-            onEditBooking={handleEditBooking}
-            onDeleteBooking={handleDeleteBooking}
-            onUpdateBookingStatus={handleUpdateBookingStatus}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-
-        <TabsContent value="pending" className="space-y-4">
-          <BookingsTable
-            bookings={bookings.filter(
-              (b) => b.status === BookingStatus.PENDING
-            )}
-            onViewBooking={handleViewBooking}
-            onEditBooking={handleEditBooking}
-            onDeleteBooking={handleDeleteBooking}
-            onUpdateBookingStatus={handleUpdateBookingStatus}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-
-        <TabsContent value="confirmed" className="space-y-4">
-          <BookingsTable
-            bookings={bookings.filter(
-              (b) => b.status === BookingStatus.CONFIRMED
-            )}
-            onViewBooking={handleViewBooking}
-            onEditBooking={handleEditBooking}
-            onDeleteBooking={handleDeleteBooking}
-            onUpdateBookingStatus={handleUpdateBookingStatus}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-
-        <TabsContent value="completed" className="space-y-4">
-          <BookingsTable
-            bookings={bookings.filter(
-              (b) => b.status === BookingStatus.COMPLETED
-            )}
-            onViewBooking={handleViewBooking}
-            onEditBooking={handleEditBooking}
-            onDeleteBooking={handleDeleteBooking}
-            onUpdateBookingStatus={handleUpdateBookingStatus}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-      </Tabs>
-
-      {/* Booking Details Modal */}
+      {/* View Booking Modal */}
       <BookingDetailsModal
-        booking={selectedBooking}
-        open={isDetailsModalOpen}
-        onClose={() => {
-          setIsDetailsModalOpen(false);
-          setSelectedBooking(null);
-        }}
+        booking={viewingBooking}
+        open={isViewMode}
+        onClose={handleCloseModal}
       />
     </DashboardLayout>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function BookingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout
+          title="Bookings"
+          description="Manage customer bookings and reservations"
+        >
+          {/* Loading fallback */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Bookings</h1>
+              <p className="text-muted-foreground">
+                Manage customer bookings and reservations
+              </p>
+            </div>
+          </div>
+
+          {/* Stats Cards Loading */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+
+          {/* Table Loading */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Bookings</CardTitle>
+              <CardDescription>
+                View and manage customer bookings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TableSkeleton rows={5} />
+            </CardContent>
+          </Card>
+        </DashboardLayout>
+      }
+    >
+      <BookingsContent />
+    </Suspense>
   );
 }

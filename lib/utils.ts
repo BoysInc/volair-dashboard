@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { QueryClient } from "@tanstack/react-query"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -11,7 +12,7 @@ export function formatNumberWithCommas(value: number): string {
 
 export function formatCurrency(value: number | string, currency: string = 'USD'): string {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -50,4 +51,35 @@ export async function tryCatch<T, E = Error>(
     // If no error type is provided, return a generic error
     return { data: null, error: error as E };
   }
+}
+
+/**
+ * Invalidates and refetches multiple query keys
+ * @param queryClient - The TanStack Query client instance
+ * @param queryKeys - Array of query keys to invalidate and refetch
+ * 
+ * @example
+ * ```ts
+ * invalidateAndRefetchQueries(queryClient, ["aircrafts", "dashboard-stats", "aircraft-widgets"]);
+ * ```
+ */
+export function invalidateAndRefetchQueries(
+  queryClient: QueryClient,
+  queryKeys: string[]
+): void {
+  // Invalidate all queries
+  queryKeys.forEach((queryKey) => {
+    queryClient.invalidateQueries({
+      queryKey: [queryKey],
+      refetchType: "all",
+    });
+  });
+
+  // // Refetch all queries
+  // queryKeys.forEach((queryKey) => {
+  //   queryClient.refetchQueries({
+  //     queryKey: [queryKey],
+  //     exact: true,
+  //   });
+  // });
 }

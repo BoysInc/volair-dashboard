@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,9 +59,11 @@ import { ErrorState } from "../ui/error-state";
 import { LoadingState } from "../ui/loading-state";
 import { toast } from "sonner";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
+import { useAircraftsStore } from "@/lib/store/aircrafts-store";
 import { DeleteAircraftConfirmationModal } from "./delete-aircraft-confirmation-modal";
-import { AircraftFlightsConflictModal } from "./aircraft-flights-conflict-modal";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { invalidateAndRefetchQueries } from "@/lib/utils";
+import { usePendingFlightsStore } from "@/lib/store/pending-flights-store";
 
 interface AircraftTableProps {
   token: string;
@@ -69,10 +72,10 @@ interface AircraftTableProps {
 export function AircraftTable({ token }: AircraftTableProps) {
   const { openEditModal } = useAircraftModalStore();
   const queryClient = useQueryClient();
+  const setAircrafts = useAircraftsStore((state) => state.setAircrafts);
+  const router = useRouter();
+  const setPendingFlights = usePendingFlightsStore((state) => state.setPendingFlights);
 
-  // State for flights conflict modal
-  const [showFlightsModal, setShowFlightsModal] = useState(false);
-  const [conflictingFlights, setConflictingFlights] = useState<string[]>([]);
   const [aircraftToDelete, setAircraftToDelete] = useState<string | null>(null);
 
   // State for delete confirmation modal
@@ -85,7 +88,16 @@ export function AircraftTable({ token }: AircraftTableProps) {
     error: aircraftError,
   } = useQuery({
     queryKey: ["aircrafts"],
-    queryFn: () => getOperatorAircrafts(token, operator?.id!),
+    queryFn: async () => {
+      const response = await getOperatorAircrafts(token, operator?.id!);
+
+      // Sync to Zustand store
+      if (response.data) {
+        setAircrafts(response.data);
+      }
+
+      return response;
+    },
     enabled: !!token && operator !== null,
   });
 
@@ -125,10 +137,7 @@ export function AircraftTable({ token }: AircraftTableProps) {
 
     toast.success("Aircraft status updated");
     // First invalidate, then refetch to ensure fresh data
-    await queryClient.invalidateQueries({ queryKey: ["aircrafts"] });
-    await queryClient.refetchQueries({ queryKey: ["aircrafts"] });
-    await queryClient.invalidateQueries({ queryKey: ["aircraftWidgets"] });
-    await queryClient.refetchQueries({ queryKey: ["aircraftWidgets"] });
+    invalidateAndRefetchQueries(queryClient, ["aircrafts", "aircraftWidgets"]);
     return;
   };
 
@@ -155,10 +164,12 @@ export function AircraftTable({ token }: AircraftTableProps) {
         try {
           const errorData = error as DeleteAircraftError;
           if (errorData.errors?.flights) {
-            setConflictingFlights(errorData.errors.flights);
+            // Save flight IDs to store and navigate to flights page
+            setPendingFlights(errorData.errors.flights, aircraftToDelete);
             setShowDeleteModal(false);
-            setShowFlightsModal(true);
+            setAircraftToDelete(null);
             setIsDeleting(false);
+            router.push("/flights");
             return;
           }
         } catch {
@@ -174,10 +185,8 @@ export function AircraftTable({ token }: AircraftTableProps) {
 
     toast.success("Aircraft deleted successfully");
     // First invalidate, then refetch to ensure fresh data
-    await queryClient.invalidateQueries({ queryKey: ["aircrafts"] });
-    await queryClient.refetchQueries({ queryKey: ["aircrafts"] });
-    await queryClient.invalidateQueries({ queryKey: ["aircraftWidgets"] });
-    await queryClient.refetchQueries({ queryKey: ["aircraftWidgets"] });
+    invalidateAndRefetchQueries(queryClient, ["aircrafts", "aircraftWidgets"]);
+
     setShowDeleteModal(false);
     setAircraftToDelete(null);
     setIsDeleting(false);
@@ -322,17 +331,6 @@ export function AircraftTable({ token }: AircraftTableProps) {
       </div>
 
       {/* Modal Components */}
-      <AircraftFlightsConflictModal
-        open={showFlightsModal}
-        onOpenChange={setShowFlightsModal}
-        conflictingFlights={conflictingFlights}
-        onClose={() => {
-          setShowFlightsModal(false);
-          setConflictingFlights([]);
-          setAircraftToDelete(null);
-        }}
-      />
-
       <DeleteAircraftConfirmationModal
         open={showDeleteModal}
         onOpenChange={(open) => {

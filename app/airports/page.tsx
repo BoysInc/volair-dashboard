@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -17,69 +12,63 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Airport } from "@/lib/types/flight";
-import {useQuery, useMutation, useQueryClient, keepPreviousData} from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { TableSkeleton } from "@/components/ui/loading-state";
 import { AirportsTable } from "@/components/airports/airports-table";
 import { AirportForm } from "@/components/airports/airport-form";
 import { UpdateAirportModal } from "@/components/airports/update-airport-modal";
 import { toast } from "sonner";
-import {getCoreRowModel, PaginationState, useReactTable} from "@tanstack/react-table";
-import {createColumnHelper} from "@tanstack/table-core";
-
-const columnHelper = createColumnHelper<Airport>()
+import { invalidateAndRefetchQueries } from "@/lib/utils";
 
 export default function AirportsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingAirport, setEditingAirport] = useState<Airport | null>(null);
-  const [pagination, setPagination] = useState<PaginationState>({
+  const [pagination, setPagination] = useState({
     pageIndex: 1,
     pageSize: 20,
-  })
+  });
 
   const { token } = useAuth(true);
   const queryClient = useQueryClient();
   const [inputValue, setInputValue] = useState("");
   const [filter, setFilter] = useState("");
-  
+
   // Debounce filter changes
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilter(inputValue);
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [inputValue]);
+
   const { data: airports, isLoading } = useQuery({
-    queryKey: ["airports", filter,  pagination.pageIndex],
+    queryKey: ["airports", filter, pagination.pageIndex],
     queryFn: async () => {
-      const url = new URL(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports`);
-      url.searchParams.append('page', pagination.pageIndex.toString());
-      
-      if (filter !== "") {
-        url.searchParams.append('filter[search]', filter);
-      }
-      
-      const response = await fetch(
-        url.toString(),
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const url = new URL(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/airports`
       );
+      url.searchParams.append("page", pagination.pageIndex.toString());
+
+      if (filter !== "") {
+        url.searchParams.append("filter[search]", filter);
+      }
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch airports");
@@ -90,62 +79,6 @@ export default function AirportsPage() {
     enabled: !!token,
     placeholderData: keepPreviousData,
   });
-  const columns = [
-    columnHelper.accessor('name', {
-      cell: info => info.getValue(),
-      header: () => <span>Airport Name</span>,
-    }),
-    columnHelper.accessor('iata_code', {
-      cell: info => info.getValue(),
-      header: () => <span>IATA code</span>,
-    }),
-    columnHelper.accessor('city', {
-      cell: info => info.getValue(),
-      header: () => <span>City</span>,
-    }),
-    columnHelper.display({
-      id: 'actions',
-      cell: ({ row }) => {
-        const airport = row.original;
-        return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setEditingAirport(airport)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => deleteAirportMutation.mutate(airport.id)}
-                    className="text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-        );
-      },
-      header: () => <span className="sr-only">Actions</span>,
-    }),
-  ]
-  const table = useReactTable({
-    data: airports?.data ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    onPaginationChange: setPagination,
-    manualPagination: true,
-    state: {
-      pagination,
-    }
-  })
 
   const deleteAirportMutation = useMutation({
     mutationFn: async (airportId: string) => {
@@ -172,7 +105,7 @@ export default function AirportsPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["airports"] });
+      invalidateAndRefetchQueries(queryClient, ["airports"]);
       toast.success("Airport deleted successfully");
     },
     onError: (error) => {
@@ -234,11 +167,12 @@ export default function AirportsPage() {
             <TableSkeleton rows={5} />
           ) : (
             <AirportsTable
-                table={table}
+              airports={airports?.data ?? []}
+              onEdit={setEditingAirport}
               onDelete={handleDeleteAirport}
-                pagination={pagination}
-                setPagination={setPagination}
-                meta={airports?.meta}
+              pagination={pagination}
+              setPagination={setPagination}
+              meta={airports?.meta}
             />
           )}
         </CardContent>

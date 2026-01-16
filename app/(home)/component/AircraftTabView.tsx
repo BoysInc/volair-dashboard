@@ -8,10 +8,11 @@ import { CardSkeleton, LoadingState } from "@/components/ui/loading-state";
 import { getOperatorAircrafts } from "@/lib/server/aircraft/aircraft";
 import { useQuery } from "@tanstack/react-query";
 import { Edit, Eye, Plus, ArrowRight } from "lucide-react";
-import React, {useMemo} from "react";
+import React, { useMemo } from "react";
 import { useAircraftModalStore } from "@/lib/store/aircraft-modal-store";
+import { useAircraftsStore } from "@/lib/store/aircrafts-store";
 import Link from "next/link";
-import {useAuthStore} from "@/lib/store/auth-store";
+import { useAuthStore } from "@/lib/store/auth-store";
 
 type AircraftTabViewProps = {
   token: string;
@@ -20,9 +21,19 @@ type AircraftTabViewProps = {
 const AircraftTabView = ({ token }: AircraftTabViewProps) => {
   const { openModal, openEditModal, openViewModal } = useAircraftModalStore();
   const operator = useAuthStore((state) => state.operator);
+  const setAircrafts = useAircraftsStore((state) => state.setAircrafts);
   const { data: aircrafts, isLoading: isLoadingAircrafts } = useQuery({
     queryKey: ["aircrafts"],
-    queryFn: () => getOperatorAircrafts(token, operator?.id!),
+    queryFn: async () => {
+      const response = await getOperatorAircrafts(token, operator?.id!);
+
+      // Sync to Zustand store
+      if (response.data) {
+        setAircrafts(response.data);
+      }
+
+      return response;
+    },
     enabled: !!token && operator !== null,
   });
 

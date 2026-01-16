@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
-import { LoadingState } from "@/components/ui/loading-state";
 import { useAuth } from "@/hooks/use-auth";
 import { getAircraftWidgets } from "@/lib/server/aircraft/aircraft";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Plane, Users } from "lucide-react";
 import React, { useMemo } from "react";
 import { Settings, Wifi } from "lucide-react";
+import { AircraftWidgetsSkeleton } from "@/components/aircraft/skeleton/AircraftWidgetsSkeleton";
 
 const AircraftWidgets = () => {
   const { token, operator } = useAuth();
@@ -20,18 +20,16 @@ const AircraftWidgets = () => {
     enabled: !!token && operator !== null,
   });
 
-
-  const { data: aircraftWidgetsData } =
-    useMemo(() => {
-      const { data, error } = aircraftWidgets || { data: null, error: null };
-      return {
-        data: data,
-        error: error,
-      };
-    }, [aircraftWidgets]);
+  const { data: aircraftWidgetsData } = useMemo(() => {
+    const { data, error } = aircraftWidgets || { data: null, error: null };
+    return {
+      data: data,
+      error: error,
+    };
+  }, [aircraftWidgets]);
 
   if (isLoadingAircraftWidgets) {
-    return <LoadingState />;
+    return <AircraftWidgetsSkeleton />;
   }
 
   if (aircraftWidgetsError) {
@@ -81,7 +79,7 @@ const AircraftWidgets = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {aircraftWidgetsData.aircraft_under_maintenance}
+              {aircraftWidgetsData.aircraft_in_flight}
             </div>
             <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
