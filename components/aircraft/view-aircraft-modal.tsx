@@ -18,7 +18,6 @@ import {
   WifiOff,
   Gauge,
   Navigation,
-  DollarSign,
   FileText,
 } from "lucide-react";
 
@@ -159,24 +158,6 @@ export function ViewAircraftModal() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Pricing Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Pricing Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Hourly Rate:</span>
-                <span className="text-2xl font-bold text-primary">
-                  ${viewingAircraft.price_per_hour_usd?.toLocaleString()}/hour
-                </span>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Additional Information */}
           <Card>
