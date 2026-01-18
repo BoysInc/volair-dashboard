@@ -404,17 +404,6 @@ export function ViewFlightModal() {
                           : "Not Available"}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        Hourly Rate:
-                      </span>
-                      <span className="text-slate-600">
-                        $
-                        {viewingFlight.aircraft.price_per_hour_usd.toLocaleString()}
-                        /hour
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>

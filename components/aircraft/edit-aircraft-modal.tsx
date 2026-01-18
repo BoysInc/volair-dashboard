@@ -407,29 +407,6 @@ export function EditAircraftModal() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="price_per_hour_usd"
-                  className="text-sm font-semibold text-slate-700"
-                >
-                  Price per Hour (USD)
-                </Label>
-                <CustomInput
-                  id="price_per_hour_usd"
-                  {...register("price_per_hour_usd", { valueAsNumber: true })}
-                  placeholder="5000"
-                  className={cn(
-                    errors.price_per_hour_usd &&
-                      "border-red-300 focus:border-red-400"
-                  )}
-                />
-                {errors.price_per_hour_usd && (
-                  <p className="text-xs text-red-600">
-                    {errors.price_per_hour_usd.message}
-                  </p>
-                )}
-              </div>
-
               <div className="space-y-3">
                 <Label className="text-sm font-semibold text-slate-700">
                   WiFi Availability

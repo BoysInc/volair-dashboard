@@ -335,16 +335,6 @@ export function BookingDetailsModal({
                 </div>
               </div>
 
-              <Separator />
-
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Price per Hour
-                </div>
-                <div className="font-medium">
-                  {formatCurrency(booking.aircraft.price_per_hour_usd / 100)}
-                </div>
-              </div>
             </CardContent>
           </Card>
 

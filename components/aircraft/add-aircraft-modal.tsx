@@ -214,21 +214,6 @@ export function AddAircraftModal() {
                   required
                 />
 
-                <CustomInput
-                  id="price_per_hour_usd"
-                  label="Price per Hour (USD)"
-                  type="number"
-                  min="1"
-                  placeholder="1000"
-                  prefix="$"
-                  registration={register("price_per_hour_usd", {
-                    valueAsNumber: true,
-                  })}
-                  error={errors.price_per_hour_usd?.message}
-                  helperText="Hourly charter rate in USD"
-                  required
-                />
-
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
