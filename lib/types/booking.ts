@@ -63,6 +63,30 @@ export interface GetOperatorBookingsResponse {
   data: OperatorBooking[];
 }
 
+export type CreateBookingType =
+  | "CharterRoundTrip"
+  | "CharterOneWay"
+  | "StandardRoundTrip"
+  | "CustomRoundTrip";
+
+export interface CreateBookingRequest {
+  type: CreateBookingType;
+  from: string;
+  to: string;
+  aircraft_id: string;
+  flight_id: string;
+  estimated_duration: number;
+  departure_passenger_count: number;
+  return_passenger_count: number | null;
+  departure_date: string;
+  return_date: string | null;
+  user_timezone: string;
+}
+
+export interface CreateBookingResponse {
+  data: Pick<OperatorBooking, "id">;
+}
+
 // Widget data for booking statistics
 export interface BookingWidgets {
   total_bookings: number;

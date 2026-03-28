@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,26 +13,19 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useAuthViewModel } from "@/hooks/use-auth-view-model";
-import { CountrySelect } from "@/components/forms/country-select";
 
 const googleClientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-interface AuthFormProps {
-  mode: "signin" | "signup";
-  onToggleMode: () => void;
-}
-
-export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
+export function AuthForm() {
   const {
     form,
-    isSignUp,
     isLoading,
     isGoogleLoading,
     isAnyLoading,
     handleSubmit,
     handleGoogleLogin,
     handleGoogleError,
-  } = useAuthViewModel(mode);
+  } = useAuthViewModel();
 
   const {
     register,
@@ -44,13 +36,9 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     <GoogleOAuthProvider clientId={googleClientID!}>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">
-            {isSignUp ? "Register Your Operator" : "Welcome back"}
-          </CardTitle>
+          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            {isSignUp
-              ? "Enter your operator details to get started"
-              : "Enter your credentials to access your account"}
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -78,19 +66,6 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <CustomInput
-                id="name"
-                label="Operator Name"
-                type="text"
-                placeholder="ABC Aviation"
-                registration={register("name" as any)}
-                error={(errors as any).name?.message}
-                disabled={isAnyLoading}
-                required
-              />
-            )}
-
             <CustomInput
               id="email"
               label="Email"
@@ -102,79 +77,23 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
               required
             />
 
-            {isSignUp && (
-              <>
-                <CustomInput
-                  id="phone"
-                  label="Phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  registration={register("phone" as any)}
-                  error={(errors as any).phone?.message}
-                  disabled={isAnyLoading}
-                  required
-                />
-
-                <CountrySelect
-                  label="Country"
-                  value={form.watch("country" as any)}
-                  onChange={(value) => form.setValue("country" as any, value)}
-                  error={(errors as any).country?.message}
-                  required
-                />
-
-                <CustomInput
-                  id="license_number"
-                  label="License Number"
-                  type="text"
-                  placeholder="Enter your operator license number"
-                  registration={register("license_number" as any)}
-                  error={(errors as any).license_number?.message}
-                  disabled={isAnyLoading}
-                  required
-                />
-              </>
-            )}
-
-            {!isSignUp && (
-              <CustomInput
-                id="password"
-                label="Password"
-                type="password"
-                placeholder="Enter your password"
-                registration={register("password" as any)}
-                error={(errors as any).password?.message}
-                disabled={isAnyLoading}
-                showPasswordToggle
-                required
-              />
-            )}
+            <CustomInput
+              id="password"
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              registration={register("password")}
+              error={errors.password?.message}
+              disabled={isAnyLoading}
+              showPasswordToggle
+              required
+            />
 
             <Button type="submit" className="w-full" disabled={isAnyLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading
-                ? isSignUp
-                  ? "Registering Operator..."
-                  : "Signing In..."
-                : isSignUp
-                ? "Register Operator"
-                : "Sign In"}
+              {isLoading ? "Signing In..." : "Sign In"}
             </Button>
           </form>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}
-            </span>{" "}
-            <button
-              type="button"
-              onClick={onToggleMode}
-              className="text-primary underline-offset-4 hover:underline"
-              disabled={isAnyLoading}
-            >
-              {isSignUp ? "Sign in" : "Sign up"}
-            </button>
-          </div>
         </CardContent>
       </Card>
     </GoogleOAuthProvider>
