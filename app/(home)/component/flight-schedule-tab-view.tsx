@@ -83,7 +83,7 @@ const FlightScheduleTabView = () => {
     queryFn: async () => {
       const { data, error } = await getOperatorFlights(
         operator?.id || "",
-        token || ""
+        token || "",
       );
 
       if (error) {
@@ -203,7 +203,7 @@ const FlightScheduleTabView = () => {
                           {
                             hour: "2-digit",
                             minute: "2-digit",
-                          }
+                          },
                         )}
                       </span>
                     </div>

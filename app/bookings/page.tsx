@@ -16,6 +16,7 @@ import { BookingDetailsModal } from "@/components/bookings/booking-details-modal
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookingsViewModel } from "@/hooks/use-bookings-view-model";
 import { ErrorState } from "@/components/ui/error-state";
+import { GenerateBookingLinkModal } from "@/components/bookings/generate-booking-link-modal";
 
 // Component that uses searchParams - needs to be wrapped in Suspense
 function BookingsContent() {
@@ -123,6 +124,20 @@ function BookingsContent() {
           </>
         )}
       </div>
+
+      {/* Send Booking Link */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate Booking Link</CardTitle>
+          <CardDescription>
+            Build a draft booking from flight and trip details, then generate a
+            magic link for your client.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <GenerateBookingLinkModal />
+        </CardContent>
+      </Card>
 
       {/* Bookings Table */}
       <Card>
