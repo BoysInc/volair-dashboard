@@ -37,7 +37,7 @@ import {
 type TripType = "one_way" | "round_trip";
 type FlightMode = "existing" | "create";
 const BOOKING_DEEP_LINK_BASE =
-  process.env.NEXT_PUBLIC_MOBILE_BOOKING_DEEP_LINK_BASE ?? "volair://booking";
+  process.env.NEXT_PUBLIC_MOBILE_BOOKING_DEEP_LINK_BASE ?? "volair://checkout";
 
 const createBookingPayloadSchema = z.object({
   type: z.enum(["CharterRoundTrip", "CharterOneWay"]),
@@ -101,7 +101,7 @@ export function GenerateBookingLinkModal() {
     value.replace("T", " ");
 
   const buildFallbackBookingLink = (bookingId: string): string => {
-    const url = new URL(BOOKING_DEEP_LINK_BASE);
+    const url = new URL(BOOKING_DEEP_LINK_BASE + "/checkout");
     url.pathname = url.pathname
       ? `${url.pathname.replace(/\/$/, "")}/checkout`
       : "/checkout";
