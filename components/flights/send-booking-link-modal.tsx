@@ -27,7 +27,7 @@ interface SendBookingLinkModalProps {
 }
 
 const BOOKING_DEEP_LINK_BASE =
-  process.env.NEXT_PUBLIC_MOBILE_BOOKING_DEEP_LINK_BASE ?? "volair://booking";
+  process.env.NEXT_PUBLIC_MOBILE_BOOKING_DEEP_LINK_BASE ?? "volair://checkout";
 
 export function SendBookingLinkModal({
   flight,
@@ -42,7 +42,7 @@ export function SendBookingLinkModal({
   const [bookingLink, setBookingLink] = useState("");
 
   const fallbackBookingLink = useMemo(() => {
-    const url = new URL(BOOKING_DEEP_LINK_BASE);
+    const url = new URL(BOOKING_DEEP_LINK_BASE + "/checkout");
     url.searchParams.set("flightId", flight.id);
     url.searchParams.set("source", "operator_dashboard");
     return url.toString();
@@ -70,8 +70,8 @@ export function SendBookingLinkModal({
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          }
-        )
+          },
+        ),
       );
 
       if (error) {
@@ -82,7 +82,7 @@ export function SendBookingLinkModal({
       }
 
       const { data: responseBody, error: parsingError } = await tryCatch(
-        data.json()
+        data.json(),
       );
 
       if (parsingError || !data.ok) {

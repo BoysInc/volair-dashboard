@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5KUHHKFXLN.com.volairav.app",
+        "paths": ["/mobile/*", "/mobile/checkout/*"]
+      }
+    ]
+  },
+  "activitycontinuation": {
+    "apps": ["5KUHHKFXLN.com.volairav.app"]
+  },
+  "webcredentials": {
+    "apps": ["5KUHHKFXLN.com.volairav.app"]
+  }
+}
